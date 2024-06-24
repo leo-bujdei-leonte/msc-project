@@ -12,7 +12,7 @@ from src.utils.training.image_classification import train_test_loop
 from src.utils.plotting import plot
 from src.models.vit import ViT
 
-save_path = "./data/models/resnet_mnist/"
+save_path = "./data/models/vit_mnist/"
         
 transform = Compose([
     Resize((224, 224)),
@@ -23,8 +23,6 @@ dataset = MNIST(root="./data/image/MNIST", download=True, transform=transform)
 train_dataset, test_dataset = random_split(dataset, [.9, .1])
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
-
-# model = MyViT((1, 224, 224), n_patches=14, n_blocks=12, hidden_d=768, n_heads=12, out_d=10).to(device)
 
 image_size = 224
 channel_size = 1
@@ -42,4 +40,4 @@ criterion = CrossEntropyLoss()
 
 num_epochs = 50
 
-train_accs, train_losses, test_accs, test_losses = train_test_loop(model, optimizer, criterion, train_loader, test_loader, num_epochs)
+train_losses, train_accs, test_losses, test_accs = train_test_loop(model, optimizer, criterion, train_loader, test_loader, num_epochs)
