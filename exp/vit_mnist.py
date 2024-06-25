@@ -2,18 +2,14 @@ import os
 
 from torch.utils.data import random_split, DataLoader
 from torch.optim import Adam
-from torch.nn import CrossEntropyLoss, Conv2d
+from torch.nn import CrossEntropyLoss
 
-from torchvision.models import ResNet
 from torchvision.datasets import MNIST
-from torchvision.models.resnet import BasicBlock
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
-import matplotlib.pyplot as plt
 
 from src.utils.training.common import device
 from src.utils.training.image_classification import train_test_loop
-from src.utils.plotting import plot
 from src.models.vit import ViT
 
 save_path = "./data/models/vit_mnist/"

@@ -9,8 +9,6 @@ from torchvision.datasets import MNIST
 from torchvision.models.resnet import BasicBlock
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
-import matplotlib.pyplot as plt
-
 from src.utils.training.common import device
 from src.utils.training.image_classification import train_test_loop
 
