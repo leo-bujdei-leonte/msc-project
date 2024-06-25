@@ -36,7 +36,7 @@ model = MNISTResNet().to(device)
 optimizer = Adam(model.parameters(), lr=0.01)
 criterion = CrossEntropyLoss()
 
-num_epochs = 10
+num_epochs = 15
 
 metrics = train_test_loop(
     model,
@@ -46,25 +46,8 @@ metrics = train_test_loop(
     test_loader, 
     num_epochs,
     save_path=save_path,
+    plot=True,
 )
 
 train_losses, train_accs, test_losses, test_accs = metrics
 epochs = list(range(1, num_epochs+1))
-
-os.makedirs(save_path, exist_ok=True)
-
-plt.figure(figsize=(12, 8))
-plt.plot(epochs, train_losses)
-plt.plot(epochs, test_losses)
-plt.legend(["Train", "Test"])
-plt.title("Cross-entropy loss")
-plt.savefig(save_path + "loss.png")
-
-plt.clf()
-
-plt.figure(figsize=(12, 8))
-plt.plot(epochs, train_accs)
-plt.plot(epochs, test_accs)
-plt.legend(["Train", "Test"])
-plt.title("Classification accuracy")
-plt.savefig(save_path + "accuracy.png")
