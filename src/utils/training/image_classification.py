@@ -1,4 +1,5 @@
 from .common import *
+from ..plotting import plot_train_test
 
 def train_epoch(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
                 loader: DataLoader) -> tuple[float, float]:
@@ -40,7 +41,7 @@ def eval(model: nn.Module, criterion: nn.Module, loader: DataLoader) -> tuple[fl
 def train_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
                     train_loader: DataLoader, test_loader: DataLoader,
                     num_epochs: int, lr_scheduler: LRScheduler = None,
-                    save_path: str = None,
+                    save_path: str = None, plot=False
                     ) -> tuple[list[float]]:
     train_accs, test_accs, train_losses, test_losses = [], [], [], []
     
@@ -56,12 +57,12 @@ def train_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.Module
     
     for i in range(1+len(train_accs), num_epochs+1):
         interval = time()
-        
+
         train_loss, train_acc = train_epoch(model, optimizer, criterion, train_loader)
         test_loss, test_acc = eval(model, criterion, test_loader)
         if lr_scheduler is not None:
             lr_scheduler.step(epoch=i, metrics=train_loss)
-            
+
         interval = time() - interval
         
         print(
@@ -81,5 +82,11 @@ def train_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.Module
                 (train_accs, test_accs, train_losses, test_losses),
                 open(save_path + "metrics.pkl", "wb"),
             )
-    
+        
+        if plot:
+            plot_train_test(list(range(1, i+1)), train_losses, test_losses,
+                            "Loss", save_path+"loss.png")
+            plot_train_test(list(range(1, i+1)), train_accs, test_accs,
+                            "Classification accuracy", save_path+"accuracy.png")
+
     return train_losses, train_accs, test_losses, test_accs
