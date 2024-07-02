@@ -47,6 +47,6 @@ metrics = train_test_loop(
     train_loader, 
     test_loader, 
     num_epochs,
-    save_path=save_path,
-    plot=True,
+    save_path=None,
+    plot=False,
 )

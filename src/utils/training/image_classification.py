@@ -21,7 +21,7 @@ def train_epoch(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
     
     if total == 0:
         return 0, 1
-    return total_loss, correct / total
+    return total_loss, correct / total # NOTE loss not normalised
 
 def eval(model: nn.Module, criterion: nn.Module, loader: DataLoader) -> tuple[float, float]:
     model.eval()
@@ -36,13 +36,15 @@ def eval(model: nn.Module, criterion: nn.Module, loader: DataLoader) -> tuple[fl
         
     if total == 0:
         return 0, 1
-    return total_loss, correct / total
+    return total_loss, correct / total # NOTE loss not normalised
 
 def train_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
                     train_loader: DataLoader, test_loader: DataLoader,
                     num_epochs: int, lr_scheduler: LRScheduler = None,
                     save_path: str = None, plot=False
                     ) -> tuple[list[float]]:
+    assert save_path is not None or plot == False
+    
     train_accs, test_accs, train_losses, test_losses = [], [], [], []
     
     if save_path is not None:
