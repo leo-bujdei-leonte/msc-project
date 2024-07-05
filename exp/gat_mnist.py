@@ -1,5 +1,3 @@
-import os
-
 from torch.utils.data import random_split, DataLoader
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
@@ -10,9 +8,9 @@ from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
 from src.utils.training.common import device
 from src.utils.training.image_classification import train_test_loop
-from src.models.vit import ViT
+from src.models.slic_gat import SLICGAT
 
-save_path = "./data/models/vit_mnist/"
+save_path = "./data/models/gat_mnist/"
         
 transform = Compose([
     Resize((28, 28)),
@@ -33,7 +31,7 @@ classes = 10
 num_layers = 3
 hidden_size = 256
 dropout = 0.2
-model = ViT(image_size, channel_size, patch_size, embed_size, num_heads, classes, num_layers, hidden_size, dropout=dropout, learnable_pe=False).to(device)
+model = ViT(image_size, channel_size, patch_size, embed_size, num_heads, classes, num_layers, hidden_size, dropout=dropout).to(device)
 
 optimizer = Adam(model.parameters(), lr=5e-5)
 criterion = CrossEntropyLoss()

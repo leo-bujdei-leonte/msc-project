@@ -10,3 +10,4 @@
 * torch, torchvision, torch-geometric
 * matplotlib
 * scikit-image
+<!-- * datasets, transformers==4.40.2 -->

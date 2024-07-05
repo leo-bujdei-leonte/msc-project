@@ -2,7 +2,7 @@ from .common import *
 from ..plotting import plot_train_test
 
 def train_epoch(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
-                loader: DataLoader) -> tuple[float, float]:
+                loader: DataLoader, normalise_loss=True) -> tuple[float, float]:
     model.train()
     correct, total_loss, total = 0, 0, 0
     for batch in loader:
@@ -21,9 +21,39 @@ def train_epoch(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
     
     if total == 0:
         return 0, 1
-    return total_loss, correct / total # NOTE loss not normalised
+    
+    if normalise_loss:
+        total_loss /= total
+    
+    return total_loss, correct / total
 
-def eval(model: nn.Module, criterion: nn.Module, loader: DataLoader) -> tuple[float, float]:
+def train_epoch_coordvit(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
+                loader: DataLoader, normalise_loss=True) -> tuple[float, float]:
+    model.train()
+    correct, total_loss, total = 0, 0, 0
+    for batch in loader:
+        x, coords, mask, y = batch[0].to(device), batch[1].to(device), batch[2].to(device), batch[3].to(device)
+        
+        optimizer.zero_grad()
+        
+        out = model(x, coords, mask)
+        loss = criterion(out, y)
+        total_loss += loss.item()
+        correct += out.argmax(dim=-1).eq(y).sum().item()
+        total += len(y)
+        
+        loss.backward()
+        optimizer.step()
+    
+    if total == 0:
+        return 0, 1
+    
+    if normalise_loss:
+        total_loss /= total
+    
+    return total_loss, correct / total
+
+def eval(model: nn.Module, criterion: nn.Module, loader: DataLoader, normalise_loss=True) -> tuple[float, float]:
     model.eval()
     correct, total_loss, total = 0, 0, 0
     for batch in loader:
@@ -36,12 +66,33 @@ def eval(model: nn.Module, criterion: nn.Module, loader: DataLoader) -> tuple[fl
         
     if total == 0:
         return 0, 1
-    return total_loss, correct / total # NOTE loss not normalised
+    if normalise_loss:
+        total_loss /= total
+    return total_loss, correct / total
+
+def eval_coordvit(model: nn.Module, criterion: nn.Module, loader: DataLoader, normalise_loss=True) -> tuple[float, float]:
+    model.eval()
+    correct, total_loss, total = 0, 0, 0
+    for batch in loader:
+        x, coords, mask, y = batch[0].to(device), batch[1].to(device), batch[2].to(device), batch[3].to(device)
+        
+        out = model(x, coords, mask)
+        total_loss += criterion(out, y).item()
+        correct += out.argmax(dim=-1).eq(y).sum().item()
+        total += len(y)
+        
+    if total == 0:
+        return 0, 1
+    if normalise_loss:
+        total_loss /= total
+    return total_loss, correct / total
 
 def train_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
                     train_loader: DataLoader, test_loader: DataLoader,
                     num_epochs: int, lr_scheduler: LRScheduler = None,
-                    save_path: str = None, plot=False
+                    save_path: str = None, plot=False,
+                    train_epoch_fn=train_epoch, eval_fn=eval,
+                    normalise_loss=True,
                     ) -> tuple[list[float]]:
     assert save_path is not None or plot == False
     
@@ -60,8 +111,8 @@ def train_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.Module
     for i in range(1+len(train_accs), num_epochs+1):
         interval = time()
 
-        train_loss, train_acc = train_epoch(model, optimizer, criterion, train_loader)
-        test_loss, test_acc = eval(model, criterion, test_loader)
+        train_loss, train_acc = train_epoch_fn(model, optimizer, criterion, train_loader, normalise_loss=normalise_loss)
+        test_loss, test_acc = eval_fn(model, criterion, test_loader, normalise_loss=normalise_loss)
         if lr_scheduler is not None:
             lr_scheduler.step(epoch=i, metrics=train_loss)
 
