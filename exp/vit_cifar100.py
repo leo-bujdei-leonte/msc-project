@@ -15,7 +15,7 @@ from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 from src.utils.training.common import device, set_seed, seed_worker
 from src.utils.training.image_classification import train_eval_test_loop
 from src.models.vit import ViT
-from src.utils.data.preprocess import random_split
+from src.utils.preprocess import random_split
 from src.utils.misc import rename_increment
 
 

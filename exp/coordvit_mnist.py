@@ -4,7 +4,7 @@ from torch.utils.data import random_split, DataLoader
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 
-from src.utils.data.preprocess import resize_stack_slic_graph_patches, collate_slic_graph_patches
+from src.utils.preprocess import resize_stack_slic_graph_patches, collate_slic_graph_patches
 from src.models.slic_transformer import CoordViT
 from src.utils.training.common import device
 from src.utils.training.image_classification import train_test_loop, train_epoch_coordvit, eval_coordvit

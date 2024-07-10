@@ -6,11 +6,11 @@ from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-from src.utils.data.preprocess import resize_stack_slic_graph_patches, collate_slic_graph_patches
+from src.utils.preprocess import resize_stack_slic_graph_patches, collate_slic_graph_patches
 from src.models.slic_transformer import CoordViT
 from src.utils.training.image_classification import train_eval_test_loop, train_epoch_coordvit, eval_coordvit
 from src.utils.training.common import device, set_seed
-from src.utils.data.preprocess import random_split
+from src.utils.preprocess import random_split
 from src.utils.misc import rename_increment
 
 
