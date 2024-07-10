@@ -4,7 +4,6 @@ from skimage import filters, graph
 import torch
 import numpy as np
 from torch_geometric.utils.convert import from_networkx
-from torchvision.transforms import Resize
 
 
 def segment_image_slic_avg_pool(image, n_segments=14*14, compactness=0.5):
@@ -26,9 +25,9 @@ def extract_patches(img, seg, reg):
     imgs, masks, coords = [], [], []
     for idx in range(len(reg)):
         x_min, y_min, x_max, y_max = reg[idx].bbox
-        cropped_image = img[x_min:x_max, y_min:y_max]
+        cropped_image = img[:, x_min:x_max, y_min:y_max]
         cropped_mask = seg[x_min:x_max, y_min:y_max]
-        cropped_mask = cropped_mask == idx+1
+        cropped_mask = cropped_mask == idx + 1
         imgs.append(cropped_image)
         masks.append(cropped_mask)
         coords.append(reg[idx].centroid)
@@ -36,25 +35,25 @@ def extract_patches(img, seg, reg):
     return imgs, masks, coords
 
 def image_to_SLIC_graph(img, n_segments=14*14, compactness=0.5, save_img=False):
-    assert type(img) == torch.Tensor and len(img.shape) == 3 and img.shape[0] == 1
+    assert type(img) == torch.Tensor and len(img.shape) == 3 and (img.shape[0] == 1 or img.shape[0] == 3)
 
-    img = np.array(img.squeeze(0))
-    seg = slic(img, n_segments=n_segments, compactness=compactness, channel_axis=None)
+    num_channels = img.shape[0]
+    img_np = np.array(img.permute(1, 2, 0)) if num_channels == 3 else np.array(img.squeeze(0))
+    seg = slic(img_np, n_segments=n_segments, compactness=compactness, channel_axis=-1 if num_channels == 3 else None)
     reg = regionprops(seg)
 
-    edge_boundary = filters.sobel(img)
+    edge_boundary = filters.sobel(img_np if num_channels == 1 else np.mean(img_np, axis=2))
     nx_g = graph.rag_boundary(seg, edge_boundary)
-
     g = from_networkx(nx_g)
     if save_img:
-        g.img = img
+        g.img = img_np
         g.seg = seg
         g.edge_boundary = edge_boundary
 
     imgs, masks, coords = extract_patches(img, seg, reg)
-    g.centroid = torch.Tensor([coords[label[0]-1] for label in g.labels])
-    g.imgs = [imgs[label[0]-1] for label in g.labels]
-    g.masks = [masks[label[0]-1] for label in g.labels]
+    g.centroid = torch.Tensor([coords[label[0] - 1] for label in g.labels])
+    g.imgs = [imgs[label[0] - 1] for label in g.labels]
+    g.masks = [masks[label[0] - 1] for label in g.labels]
 
     return g
 

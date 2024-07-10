@@ -1,12 +1,9 @@
-import os
-
 from torch.utils.data import random_split, DataLoader
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
 
 from torchvision.datasets import MNIST
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
-
 
 from src.utils.training.common import device
 from src.utils.training.image_classification import train_test_loop

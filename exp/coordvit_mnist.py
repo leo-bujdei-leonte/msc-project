@@ -1,23 +1,8 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
-
-import torchvision
-import torchvision.models as models
-
-import math
-
-import os
+import pickle
 
 from torch.utils.data import random_split, DataLoader
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss
-
-from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, Resize, ToTensor, Normalize
-
-import pickle
 
 from src.utils.data.preprocess import resize_stack_slic_graph_patches, collate_slic_graph_patches
 from src.models.slic_transformer import CoordViT

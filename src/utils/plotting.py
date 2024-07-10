@@ -2,7 +2,7 @@ import os
 from typing import Iterable
 
 import matplotlib.pyplot as plt
-from skimage import graph, io, color
+from skimage import graph, color
 
 def plot_train_test(x: Iterable, y_train: Iterable, y_test: Iterable,
                     title: str, save_path: str, figsize: tuple[int, int] = (12, 8)) -> None:

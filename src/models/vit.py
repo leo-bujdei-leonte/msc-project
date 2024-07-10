@@ -1,10 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
-
-import torchvision
-import torchvision.models as models
 
 import math
 
@@ -20,9 +16,6 @@ class PositionalEncoding2D(nn.Module):
         self.pe[:, 0::2] = torch.sin(position * div_term)
         self.pe[:, 1::2] = torch.cos(position * div_term)
     
-        # self.register_buffer("pe_x", pe.clone()) # TODO do we need this?
-        # self.register_buffer("pe_y", pe.clone())
-    
     def forward(self, coords): # TODO forces ints
         pe_x = self.pe[coords[..., 0]]
         pe_y = self.pe[coords[..., 1]]
@@ -36,18 +29,6 @@ class PositionalEncoding2D(nn.Module):
 
 
 class VisionEncoder(nn.Module):
-    r"""Vision Encoder Model
-
-        An Encoder Layer with the added functionality to encode important local structures of a tokenized image
-
-        Args:
-            embed_size      (int): Embedding Size of Input
-            num_heads       (int): Number of heads in multi-headed attention
-            hidden_size     (int): Number of hidden layers
-            dropout         (float, optional): A probability from 0 to 1 which determines the dropout rate
-
-    """
-
     def __init__(self, embed_size: int, num_heads: int, hidden_size: int, dropout: float = 0.1):
         super(VisionEncoder, self).__init__()
 
@@ -83,22 +64,6 @@ class VisionEncoder(nn.Module):
 
 
 class ViT(nn.Module):
-    r"""Vision Transformer Model
-
-        A transformer model to solve vision tasks by treating images as sequences of tokens.
-
-        Args:
-            image_size      (int): Size of input image
-            channel_size    (int): Size of the channel
-            patch_size      (int): Max patch size, determines number of split images/patches and token size
-            embed_size      (int): Embedding size of input
-            num_heads       (int): Number of heads in Multi-Headed Attention
-            classes         (int): Number of classes for classification of data
-            hidden_size     (int): Number of hidden layers
-            dropout         (float, optional): A probability from 0 to 1 which determines the dropout rate
-
-    """
-
     def __init__(self, image_size: int, channel_size: int, patch_size: int, embed_size: int, num_heads: int,
                  classes: int, num_layers: int, hidden_size: int, dropout: float = 0.1, learnable_pe=True):
         super(ViT, self).__init__()
@@ -141,15 +106,16 @@ class ViT(nn.Module):
 
         b, n, e = x.size()
         
-        if self.learnable_pe:
-            pe = self.positional_encoding
-        else:
+        if not self.learnable_pe:
             coords = torch.cartesian_prod(torch.arange(int(h / self.p)), torch.arange(int(w / self.p))).unsqueeze(0).expand(b, int(h * w / (self.p * self.p)), 2) # TODO looks horrible
             pe = self.positional_encoding(coords).to(x.device)
-        x = x + pe
+            x = x + pe
         
         class_token = self.class_token.expand(b, 1, e)
         x = torch.cat((x, class_token), dim=1)
+        
+        if self.learnable_pe:
+            x = x + self.positional_encoding
         
         x = self.dropout_layer(x)
 

@@ -1,83 +1,87 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
+"""
+Source: https://cloud.google.com/vertex-ai/docs/
+"""
 
-import torchvision
-import torchvision.models as models
+from typing import Any
 
-import math
+from google.cloud import aiplatform
 
-import os
+def create_experiment_run_sample(
+    experiment_name: str,
+    run_name: str,
+    experiment_run_tensorboard: str | aiplatform.Tensorboard | None,
+    project: str,
+    location: str,
+):
+    aiplatform.init(experiment=experiment_name, project=project, location=location)
+    aiplatform.start_run(run=run_name, tensorboard=experiment_run_tensorboard)
 
-from torch.utils.data import random_split, DataLoader
-from torch.optim import Adam
-from torch.nn import CrossEntropyLoss
+def end_experiment_run_sample(
+    experiment_name: str,
+    run_name: str,
+    project: str,
+    location: str,
+):
+    aiplatform.init(experiment=experiment_name, project=project, location=location)
+    aiplatform.start_run(run=run_name, resume=True)
+    aiplatform.end_run()
 
-from torchvision.datasets import MNIST
-from torchvision.transforms import Compose, Resize, ToTensor, Normalize
+def resume_experiment_run_sample(
+    experiment_name: str,
+    run_name: str,
+    project: str,
+    location: str,
+):
+    aiplatform.init(experiment=experiment_name, project=project, location=location)
 
-import pickle
+    aiplatform.start_run(run=run_name, resume=True)
 
-from src.utils.data.preprocess import resize_stack_slic_graph_patches, collate_slic_graph_patches
-from src.models.slic_transformer import CoordViT
-from src.utils.training.common import device
-from src.utils.training.image_classification import train_test_loop, train_epoch_coordvit, eval_coordvit
+def delete_experiment_run_sample(
+    run_name: str,
+    experiment: str | aiplatform.Experiment,
+    project: str,
+    location: str,
+    delete_backing_tensorboard_run: bool = False,
+):
+    experiment_run = aiplatform.ExperimentRun(
+        run_name=run_name, experiment=experiment, project=project, location=location
+    )
 
-dataset = pickle.load(open("./data/image/MNIST/MNIST_SLIC_graph_28_16_0p5.pkl", "rb"))
-dataset = resize_stack_slic_graph_patches(dataset, (7, 7)) # this is part of the model
-print("Finished preprocessing")
+    experiment_run.delete(delete_backing_tensorboard_run=delete_backing_tensorboard_run)
 
-train_dataset, test_dataset = random_split(dataset, [.9, .1])
-train_loader = DataLoader(
-    train_dataset,
-    batch_size=32,
-    shuffle=True,
-    collate_fn=collate_slic_graph_patches
-)
-test_loader = DataLoader(
-    test_dataset,
-    batch_size=32,
-    shuffle=False,
-    collate_fn=collate_slic_graph_patches
-)
+def update_experiment_run_state_sample(
+    run_name: str,
+    experiment: str | aiplatform.Experiment,
+    project: str,
+    location: str,
+    state: aiplatform.gapic.Execution.State,
+) -> None:
+    experiment_run = aiplatform.ExperimentRun(
+        run_name=run_name,
+        experiment=experiment,
+        project=project,
+        location=location,
+    )
 
-image_size = 28
-channel_size = 1
-patch_size = 7
-embed_size = 512
-num_heads = 8
-classes = 10
-num_layers = 3
-hidden_size = 256
-dropout = 0.2
-model = CoordViT(
-    image_size,
-    channel_size,
-    patch_size,
-    embed_size,
-    num_heads,
-    classes,
-    num_layers,
-    hidden_size,
-    dropout=dropout
-).to(device)
+    experiment_run.update_state(state)
 
+def log_pipeline_job_to_experiment_sample(
+    experiment_name: str,
+    pipeline_job_display_name: str,
+    template_path: str,
+    pipeline_root: str,
+    project: str,
+    location: str,
+    parameter_values: dict[str | Any] | None = None,
+):
+    aiplatform.init(project=project, location=location)
 
-optimizer = Adam(model.parameters(), lr=5e-5)
-criterion = CrossEntropyLoss()
+    pipeline_job = aiplatform.PipelineJob(
+        display_name=pipeline_job_display_name,
+        template_path=template_path,
+        pipeline_root=pipeline_root,
+        parameter_values=parameter_values,
+    )
 
-num_epochs = 50
+    pipeline_job.submit(experiment=experiment_name)
 
-metrics = train_test_loop(
-    model,
-    optimizer,
-    criterion,
-    train_loader, 
-    test_loader, 
-    num_epochs,
-    save_path=None,
-    plot=False,
-    train_epoch_fn=train_epoch_coordvit,
-    eval_fn=eval_coordvit,
-)

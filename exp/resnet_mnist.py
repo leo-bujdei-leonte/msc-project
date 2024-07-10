@@ -1,5 +1,3 @@
-import os
-
 from torch.utils.data import random_split, DataLoader
 from torch.optim import Adam
 from torch.nn import CrossEntropyLoss, Conv2d
