@@ -110,9 +110,10 @@ for idx, (x, y) in enumerate(dataset):
     
     if idx % 1000 == 0:
         print("Processed image", idx)
-        if os.path.isfile(data_path+file_name):
-            os.remove(data_path+file_name)
-        pickle.dump(segmented_dataset, open(data_path+file_name, "wb"))
+        if idx % 10000 == 0:
+            if os.path.isfile(data_path+file_name):
+                os.remove(data_path+file_name)
+            pickle.dump(segmented_dataset, open(data_path+file_name, "wb"))
 
 if os.path.isfile(data_path+file_name):
     os.remove(data_path+file_name)
