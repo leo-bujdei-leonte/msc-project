@@ -1,6 +1,9 @@
 import os
 import pickle
 from time import time
+from copy import deepcopy
+
+import wandb
 
 import torch
 import torch.nn as nn
@@ -158,10 +161,11 @@ def train_eval_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.M
                     train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                     num_epochs: int, lr_scheduler: LRScheduler = None,
                     train_epoch_fn=train_epoch, eval_fn=eval, early_stopping=float("inf"),
-                    normalise_loss=True,
+                    normalise_loss=True, use_wandb=False,
                     ) -> tuple[list[float]]:    
     train_accs, val_accs, test_accs, train_losses, val_losses, test_losses = [], [], [], [], [], []
             
+    best_model = deepcopy(model)
     max_val_acc = float("-inf")
     num_not_max = 0
     for i in range(1+len(train_accs), num_epochs+1):
@@ -176,6 +180,7 @@ def train_eval_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.M
         test_loss, test_acc = eval_fn(model, criterion, test_loader, normalise_loss=normalise_loss)
         if val_acc > max_val_acc:
             max_val_acc = val_acc
+            best_model = deepcopy(model)
             num_not_max = 0
             new_flag = True
         else:
@@ -203,6 +208,15 @@ def train_eval_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.M
         val_accs.append(val_acc)
         test_losses.append(test_loss)
         test_accs.append(test_acc)
+        if use_wandb:
+            wandb.log({
+                "train_loss": train_loss,
+                "val_loss": val_loss,
+                "test_loss": test_loss,
+                "train_acc": train_acc,
+                "val_acc": val_acc,
+                "test_acc": test_acc
+            })
 
     return {
         "train_accs": train_accs,
@@ -211,4 +225,4 @@ def train_eval_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.M
         "train_losses": train_losses,
         "val_losses": val_losses,
         "test_losses": test_losses,
-    }
+    }, best_model

@@ -10,4 +10,5 @@
 * torch, torchvision, torch-geometric
 * matplotlib
 * scikit-image
+* wandb
 <!-- * datasets, transformers==4.40.2 -->
