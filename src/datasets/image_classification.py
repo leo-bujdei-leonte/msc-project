@@ -54,6 +54,13 @@ class CIFAR100(ImageClassificationDataset):
         super().__init__()
         
         self.data = datasets.CIFAR100(root, transform=transform, download=download)
+
+
+class MNIST(ImageClassificationDataset):
+    def __init__(self, root, transform=None, download=True) -> None:
+        super().__init__()
+        
+        self.data = datasets.MNIST(root, transform=transform, download=download)
         
         
 if __name__ == "__main__":

@@ -2,21 +2,21 @@ from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
 from src.models.fcn import FCN
 from src.experiments.image_classification import Experiment
-from src.datasets.image_classification import MNIST
+from src.datasets.image_classification import CIFAR100
 
 # experiment arguments
 extra_args = [
-    ("--save-path", str, "./data/models/fcn_mnist", "path to save the model"),
-    ("--data-root", str, "./data/image/MNIST", "path to save the dataset"),
+    ("--save-path", str, "./data/models/fcn_cifar100", "path to save the model"),
+    ("--data-root", str, "./data/image/CIFAR100", "path to save the dataset"),
     
-    ("--image-size",      int, 28,  "image size"),
-    ("--channel-size",    int, 1,   "channel size"),
-    ("--classes",         int, 10, "number of classes"),
+    ("--image-size",      int, 32,  "image size"),
+    ("--channel-size",    int, 3,   "channel size"),
+    ("--classes",         int, 100, "number of classes"),
     ("--num-conv-layers", int, 3,   "number of convolutional layers"),
     ("--num-lin-layers",  int, 3,   "number of mlp layers"),
     ("--hidden-size",     int, 256, "hidden size"),
 ]
-exp = Experiment("FCN-MNIST", "FCN on MNIST")
+exp = Experiment("FCN-cifar100", "FCN on CIFAR100")
 exp.parse_args(extra_args)
 
 # data preprocessing
@@ -25,7 +25,7 @@ transform = Compose([
     ToTensor(),
     Normalize(0, 1),
 ])
-dataset = MNIST(root=exp.args.data_root, download=True, transform=transform)
+dataset = CIFAR100(root=exp.args.data_root, download=True, transform=transform)
 exp.prepare_dataset(dataset)
 
 # experiment run

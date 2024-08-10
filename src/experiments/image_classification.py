@@ -33,13 +33,13 @@ _DEFAULT_ARGS = [
     ("--use-lr-scheduler",      int,   0,    "use ReduceLROnPlateau learning rate scheduler"),
     ("--lr-scheduler-factor",   float, 0.5,  "learning rate scheduler factor"),
     ("--lr-scheduler-patience", int,   5,    "learning rate scheduler patience"),
-    ("--early-stopping",        int,   20,   "early stopping patience"),
+    ("--early-stopping",        int,   10,   "early stopping patience"),
     ("--weight-decay",          float, 0.0,  "weight decay"),
 ]
 
 class Experiment():
     def __init__(self, name, description) -> None:
-        self.name = name + str(time())
+        self.name = name
         self.parser = argparse.ArgumentParser(description=description)
         self.dataset = None
     
@@ -61,9 +61,11 @@ class Experiment():
         self.dataset = dataset
         
     def run(self, model_init_fn):
-        full_metrics = []
         os.makedirs(self.args.save_path, exist_ok=True)
+        for dir in ["metrics", "models", "losses", "accuracies"]:
+            os.makedirs(self.args.save_path+os.sep+dir, exist_ok=True)
         
+        full_metrics = []
         for i in range(self.args.skip_count, self.args.num_exp):
             model_name = str(time())
             if self.args.log_wandb:
@@ -103,7 +105,7 @@ class Experiment():
             if self.args.save_model:
                 torch.save(
                     best_model,
-                    open(os.sep.join([self.args.save_path, "model", model_name+".pt"]), "wb")
+                    open(os.sep.join([self.args.save_path, "models", model_name+".pt"]), "wb")
                 )
             if self.args.print_stats:
                 plot_train_val_test(

@@ -210,6 +210,7 @@ def train_eval_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.M
         test_accs.append(test_acc)
         if use_wandb:
             wandb.log({
+                "epoch": i,
                 "train_loss": train_loss,
                 "val_loss": val_loss,
                 "test_loss": test_loss,
