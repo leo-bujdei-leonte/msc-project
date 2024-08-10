@@ -44,9 +44,9 @@ class Experiment():
         self.dataset = None
     
     def parse_args(self, extra_args=[]):
-        arg_names = set(arg[0][2:] for arg in extra_args)
-        assert "save-path" in arg_names and "data-root" in arg_names
-        for arg in _DEFAULT_ARGS + extra_args:
+        arg_names = set(arg[0] for arg in extra_args)
+        assert "--save-path" in arg_names and "--data-root" in arg_names
+        for arg in extra_args + [arg for arg in _DEFAULT_ARGS if arg[0] not in arg_names]:
             self.parser.add_argument(arg[0], type=arg[1], default=arg[2], help=arg[3])
         self.args = self.parser.parse_args()
         assert self.args.skip_count <= self.args.num_exp
@@ -68,8 +68,7 @@ class Experiment():
         full_metrics = []
         for i in range(self.args.skip_count, self.args.num_exp):
             model_name = str(time())
-            if self.args.log_wandb:
-                wandb.init(project=self.name, name=model_name, config=self.args)
+            
             print(f"Started experiment {i+1}")
             set_seed(i)
             
@@ -84,6 +83,8 @@ class Experiment():
                 patience=self.args.lr_scheduler_patience,
             ) if self.args.use_lr_scheduler else None
             
+            if self.args.log_wandb:
+                wandb.init(project=self.name, name=model_name, config=self.args)
             metrics, best_model = train_eval_test_loop(
                 model,
                 optimizer,
@@ -96,6 +97,8 @@ class Experiment():
                 early_stopping=self.args.early_stopping,
                 use_wandb=self.args.log_wandb,
             )
+            if self.args.log_wandb:
+                wandb.finish()
             full_metrics.append(metrics)
             
             pickle.dump(
