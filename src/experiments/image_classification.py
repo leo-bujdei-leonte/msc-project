@@ -11,9 +11,10 @@ from torch.nn import CrossEntropyLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from src.utils.training.common import device, set_seed
-from src.utils.training.image_classification import train_eval_test_loop
+from src.utils.training.image_classification import train_eval_test_loop, train_epoch, eval, default_batch_processing_fn
 from src.utils.misc import rename_increment
 from src.utils.plotting import plot_train_val_test
+from src.datasets.image_classification import ImageClassificationDataset
 
 _DEFAULT_ARGS = [
     ("--print-stats", int, 1, "print training statistics"),
@@ -51,16 +52,17 @@ class Experiment():
         self.args = self.parser.parse_args()
         assert self.args.skip_count <= self.args.num_exp
             
-    def prepare_dataset(self, dataset, batch_collate_fn=None):
+    def prepare_dataset(self, dataset: ImageClassificationDataset, graph_loader=False, batch_collate_fn=None):
         dataset.splits((self.args.train_split, self.args.val_split, self.args.test_split))
         dataset.loaders(
             batch_size=self.args.batch_size,
             shuffles=(True, False, False),
+            graph_loader=graph_loader,
             collate_fn=batch_collate_fn,
         )
         self.dataset = dataset
         
-    def run(self, model_init_fn):
+    def run(self, model_init_fn, batch_processing_fn=default_batch_processing_fn):
         os.makedirs(self.args.save_path, exist_ok=True)
         for dir in ["metrics", "models", "losses", "accuracies"]:
             os.makedirs(self.args.save_path+os.sep+dir, exist_ok=True)
@@ -95,6 +97,7 @@ class Experiment():
                 self.args.num_epochs,
                 lr_scheduler=lr_scheduler,
                 early_stopping=self.args.early_stopping,
+                batch_processing_fn=batch_processing_fn,
                 use_wandb=self.args.log_wandb,
             )
             if self.args.log_wandb:

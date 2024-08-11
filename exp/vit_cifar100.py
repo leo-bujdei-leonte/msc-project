@@ -6,8 +6,8 @@ from src.datasets.image_classification import CIFAR100
 
 # experiment arguments
 extra_args = [
-    ("--save-path",   str, "./data/models/vit_cifar100", "path to save the model"),
-    ("--data-root",          str,   "./data/image/CIFAR100", "path to save the dataset"),
+    ("--save-path", str, "./data/models/vit_cifar100", "path to save the model"),
+    ("--data-root", str, "./data/image/CIFAR100", "path to save the dataset"),
     
     ("--batch-size",   int,   4096, "batch size for the dataloader"),
     ("--weight-decay", float, 0.1,  "weight decay"),

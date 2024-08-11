@@ -4,6 +4,8 @@ import pickle
 import torch
 from torchvision.transforms import Resize
 from torch.nn.utils.rnn import pad_sequence
+from torch_geometric.data import Data
+
 
 def random_split(data, ratios, dataset_name):
     if len(ratios) == 2:
@@ -66,3 +68,66 @@ def collate_slic_graph_patches(batch):
     y = torch.tensor([g.y for g in batch], dtype=torch.long)
 
     return imgs, coords, mask, y
+
+def generate_all_edges(h, w):
+    directions = [
+        (-1, 0),  # left
+        (-1, -1), # top-left
+        (0, -1),  # top
+        (1, -1),  # top-right
+        (1, 0),   # right
+        (1, 1),   # bottom-right
+        (0, 1),   # bottom
+        (-1, 1)   # bottom-left
+    ]
+    
+    # Generate all pixel coordinates (x, y)
+    x_coords = torch.arange(w)
+    y_coords = torch.arange(h)
+    
+    # Create a grid of all pixel coordinates
+    grid_x, grid_y = torch.meshgrid(x_coords, y_coords, indexing='ij')
+    
+    # Flatten the grid to get all (x, y) pairs
+    grid_x = grid_x.flatten()
+    grid_y = grid_y.flatten()
+    
+    # Initialize lists to collect valid edges
+    source_indices = []
+    target_indices = []
+    
+    # Loop through all directions
+    for dx, dy in directions:
+        # Compute the target coordinates (x + dx, y + dy)
+        target_x = grid_x + dx
+        target_y = grid_y + dy
+        
+        # Determine valid edges (those within the image bounds)
+        valid_mask = (target_x >= 0) & (target_x < w) & (target_y >= 0) & (target_y < h)
+        
+        # Extract valid coordinates
+        valid_source_indices = grid_y[valid_mask] * w + grid_x[valid_mask]
+        valid_target_indices = target_y[valid_mask] * w + target_x[valid_mask]
+        
+        # Append to the lists
+        source_indices.append(valid_source_indices)
+        target_indices.append(valid_target_indices)
+    
+    # Concatenate all valid edges
+    all_source_indices = torch.cat(source_indices)
+    all_target_indices = torch.cat(target_indices)
+    
+    # Stack the source and target indices to form the edges
+    edges = torch.stack([all_source_indices, all_target_indices], dim=0)
+    
+    return edges
+
+def image_to_pygraph(data):
+    img, y = data
+    c, h, w = img.shape
+    
+    edge_index = generate_all_edges(h, w)
+    
+    x = img.reshape(c, -1).T
+    
+    return Data(x=x, edge_index=edge_index, y=y)

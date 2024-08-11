@@ -14,16 +14,59 @@ from torch.optim.lr_scheduler import LRScheduler
 from .common import *
 from ..plotting import plot_train_test
 
-def train_epoch(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
+
+def default_batch_processing_fn(batch, model):
+    x, y = batch[0].to(device), batch[1].to(device)
+    out = model(x)
+    
+    return out, y
+
+def gcn_batch_processing_fn(batch, model):
+    out = model(
+        batch.x.to(device),
+        batch.edge_index.to(device),
+        batch.batch.to(device)
+    )
+    
+    return out, batch.y.to(device)
+
+
+def train_epoch_gcn(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
                 loader: DataLoader, normalise_loss=True) -> tuple[float, float]:
     model.train()
     correct, total_loss, total = 0, 0, 0
     for batch in loader:
-        x, y = batch[0].to(device), batch[1].to(device)
+        x, edge_index, batch, y = batch.x.to(device), batch.edge_index.to(device), batch.batch.to(device), batch.y.to(device)
         
         optimizer.zero_grad()
         
-        out = model(x)
+        out = model(x, edge_index, batch)
+        loss = criterion(out, y)
+        total_loss += loss.item()
+        correct += out.argmax(dim=-1).eq(y).sum().item()
+        total += len(y)
+        
+        loss.backward()
+        optimizer.step()
+    
+    if total == 0:
+        return 0, 1
+    
+    if normalise_loss:
+        total_loss /= total
+    
+    return total_loss, correct / total
+    
+
+def train_epoch(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
+                loader: DataLoader, batch_processing_fn=default_batch_processing_fn,
+                normalise_loss=True) -> tuple[float, float]:
+    model.train()
+    correct, total_loss, total = 0, 0, 0
+    for batch in loader:
+        optimizer.zero_grad()
+        
+        out, y = batch_processing_fn(batch, model)
         loss = criterion(out, y)
         total_loss += loss.item()
         correct += out.argmax(dim=-1).eq(y).sum().item()
@@ -66,13 +109,13 @@ def train_epoch_coordvit(model: nn.Module, optimizer: Optimizer, criterion: nn.M
     
     return total_loss, correct / total
 
-def eval(model: nn.Module, criterion: nn.Module, loader: DataLoader, normalise_loss=True) -> tuple[float, float]:
+def eval(model: nn.Module, criterion: nn.Module, loader: DataLoader,
+         batch_processing_fn=default_batch_processing_fn,
+         normalise_loss=True) -> tuple[float, float]:
     model.eval()
     correct, total_loss, total = 0, 0, 0
     for batch in loader:
-        x, y = batch[0].to(device), batch[1].to(device)
-        
-        out = model(x)
+        out, y = batch_processing_fn(batch, model)
         total_loss += criterion(out, y).item()
         correct += out.argmax(dim=-1).eq(y).sum().item()
         total += len(y)
@@ -104,7 +147,7 @@ def train_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.Module
                     train_loader: DataLoader, test_loader: DataLoader,
                     num_epochs: int, lr_scheduler: LRScheduler = None,
                     save_path: str = None, plot=False,
-                    train_epoch_fn=train_epoch, eval_fn=eval,
+                    batch_processing_fn=default_batch_processing_fn,
                     normalise_loss=True,
                     ) -> tuple[list[float]]:
     assert save_path is not None or plot == False
@@ -124,8 +167,8 @@ def train_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.Module
     for i in range(1+len(train_accs), num_epochs+1):
         interval = time()
 
-        train_loss, train_acc = train_epoch_fn(model, optimizer, criterion, train_loader, normalise_loss=normalise_loss)
-        test_loss, test_acc = eval_fn(model, criterion, test_loader, normalise_loss=normalise_loss)
+        train_loss, train_acc = train_epoch(model, optimizer, criterion, train_loader, normalise_loss=normalise_loss, batch_processing_fn=batch_processing_fn)
+        test_loss, test_acc = eval(model, criterion, test_loader, normalise_loss=normalise_loss, batch_processing_fn=batch_processing_fn)
         if lr_scheduler is not None:
             lr_scheduler.step(epoch=i, metrics=train_loss)
 
@@ -160,7 +203,7 @@ def train_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.Module
 def train_eval_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
                     train_loader: DataLoader, val_loader: DataLoader, test_loader: DataLoader,
                     num_epochs: int, lr_scheduler: LRScheduler = None,
-                    train_epoch_fn=train_epoch, eval_fn=eval, early_stopping=float("inf"),
+                    batch_processing_fn=default_batch_processing_fn, early_stopping=float("inf"),
                     normalise_loss=True, use_wandb=False,
                     ) -> tuple[list[float]]:    
     train_accs, val_accs, test_accs, train_losses, val_losses, test_losses = [], [], [], [], [], []
@@ -175,9 +218,9 @@ def train_eval_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.M
         
         interval = time()
 
-        train_loss, train_acc = train_epoch_fn(model, optimizer, criterion, train_loader, normalise_loss=normalise_loss)
-        val_loss, val_acc = eval_fn(model, criterion, val_loader, normalise_loss=normalise_loss)
-        test_loss, test_acc = eval_fn(model, criterion, test_loader, normalise_loss=normalise_loss)
+        train_loss, train_acc = train_epoch(model, optimizer, criterion, train_loader, normalise_loss=normalise_loss, batch_processing_fn=batch_processing_fn)
+        val_loss, val_acc = eval(model, criterion, val_loader, normalise_loss=normalise_loss, batch_processing_fn=batch_processing_fn)
+        test_loss, test_acc = eval(model, criterion, test_loader, normalise_loss=normalise_loss, batch_processing_fn=batch_processing_fn)
         if val_acc > max_val_acc:
             max_val_acc = val_acc
             best_model = deepcopy(model)

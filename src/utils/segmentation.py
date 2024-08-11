@@ -34,7 +34,9 @@ def extract_patches(img, seg, reg):
 
     return imgs, masks, coords
 
-def image_to_SLIC_graph(img, n_segments=14*14, compactness=0.5, save_img=False):
+def image_to_SLIC_graph(data, n_segments=14*14, compactness=0.5, save_img=False):
+    img, y = data
+    
     assert type(img) == torch.Tensor and len(img.shape) == 3 and (img.shape[0] == 1 or img.shape[0] == 3)
 
     num_channels = img.shape[0]
@@ -54,6 +56,7 @@ def image_to_SLIC_graph(img, n_segments=14*14, compactness=0.5, save_img=False):
     g.centroid = torch.Tensor([coords[label[0] - 1] for label in g.labels])
     g.imgs = [imgs[label[0] - 1] for label in g.labels]
     g.masks = [masks[label[0] - 1] for label in g.labels]
+    g.y = y
 
     return g
 
