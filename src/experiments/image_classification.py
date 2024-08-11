@@ -64,7 +64,7 @@ class Experiment():
         
     def run(self, model_init_fn, batch_processing_fn=default_batch_processing_fn):
         os.makedirs(self.args.save_path, exist_ok=True)
-        for dir in ["metrics", "models", "losses", "accuracies"]:
+        for dir in ["metrics", "models", "losses", "accuracies", "full_metrics"]:
             os.makedirs(self.args.save_path+os.sep+dir, exist_ok=True)
         
         full_metrics = []
