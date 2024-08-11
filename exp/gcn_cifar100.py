@@ -43,7 +43,7 @@ transform = Compose([
 ])
 dataset = CIFAR100(root=exp.args.data_root, download=True, transform=transform)
 dataset.to_pixel_graphs()
-exp.prepare_dataset(dataset)
+exp.prepare_dataset(dataset, graph_loader=True)
 
 # experiment run
 exp.run(model_init_fn=model_init_fn, batch_processing_fn=batch_processing_fn)

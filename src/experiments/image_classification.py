@@ -31,7 +31,7 @@ _DEFAULT_ARGS = [
     ("--skip-count",            int,   0,    "skip first k experiments"),
     ("--num-epochs",            int,   100,  "number of epochs to train"),
     ("--lr",                    float, 5e-5, "learning rate"),
-    ("--use-lr-scheduler",      int,   0,    "use ReduceLROnPlateau learning rate scheduler"),
+    ("--use-lr-scheduler",      int,   1,    "use ReduceLROnPlateau learning rate scheduler"),
     ("--lr-scheduler-factor",   float, 0.5,  "learning rate scheduler factor"),
     ("--lr-scheduler-patience", int,   5,    "learning rate scheduler patience"),
     ("--early-stopping",        int,   10,   "early stopping patience"),

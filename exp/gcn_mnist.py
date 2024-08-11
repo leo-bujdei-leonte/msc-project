@@ -1,7 +1,5 @@
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
-from torch_geometric.loader.dataloader import Collater
-
 from src.models.gcn import GCN
 from src.experiments.image_classification import Experiment
 from src.datasets.image_classification import MNIST

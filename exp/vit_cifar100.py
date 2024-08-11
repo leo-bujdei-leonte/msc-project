@@ -3,11 +3,33 @@ from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 from src.models.vit import ViT
 from src.experiments.image_classification import Experiment
 from src.datasets.image_classification import CIFAR100
+from src.utils.training.image_classification import default_batch_processing_fn
+
+# to be changed for each experiment
+save_path = "./data/models/vit_cifar100"
+data_root = "./data/image/CIFAR100"
+project = "ViT-cifar100"
+description = "ViT on CIFAR100"
+batch_processing_fn = default_batch_processing_fn
+def model_init_fn(args):
+    return ViT(
+        args.image_size,
+        args.channel_size,
+        args.patch_size,
+        args.embed_size,
+        args.num_heads,
+        args.classes,
+        args.num_layers,
+        args.hidden_size,
+        args.mlp_size,
+        dropout=args.dropout,
+        learnable_pe=args.learnable_pe,
+    )
 
 # experiment arguments
 extra_args = [
-    ("--save-path", str, "./data/models/vit_cifar100", "path to save the model"),
-    ("--data-root", str, "./data/image/CIFAR100", "path to save the dataset"),
+    ("--save-path", str, save_path, "path to save the model"),
+    ("--data-root", str, data_root, "path to save the dataset"),
     
     ("--batch-size",   int,   4096, "batch size for the dataloader"),
     ("--weight-decay", float, 0.1,  "weight decay"),
@@ -24,7 +46,7 @@ extra_args = [
     ("--learnable-pe",  int,   0,    "learnable positional encoding"),
     ("--mlp-size",      int,   3072, "mlp hidden size"),
 ]
-exp = Experiment("ViT-cifar100", "ViT on CIFAR100")
+exp = Experiment(project, description)
 exp.parse_args(extra_args)
 
 # data preprocessing
@@ -37,18 +59,4 @@ dataset = CIFAR100(root=exp.args.data_root, download=True, transform=transform)
 exp.prepare_dataset(dataset)
 
 # experiment run
-def vit_init_fn(args):
-    return ViT(
-        args.image_size,
-        args.channel_size,
-        args.patch_size,
-        args.embed_size,
-        args.num_heads,
-        args.classes,
-        args.num_layers,
-        args.hidden_size,
-        args.mlp_size,
-        dropout=args.dropout,
-        learnable_pe=args.learnable_pe,
-    )
-exp.run(vit_init_fn)
+exp.run(model_init_fn=model_init_fn, batch_processing_fn=batch_processing_fn)

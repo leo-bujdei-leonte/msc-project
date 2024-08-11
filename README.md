@@ -4,7 +4,7 @@
 
 *All* scripts are intended to be run from the root directory msc-project.
 
-The most up-to-date experiment template is in exp/fcn_cifar100.py
+The most up-to-date experiment template is in exp/gcn_cifar100.py
 
 ## Requirements
 
