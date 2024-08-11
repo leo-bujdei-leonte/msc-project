@@ -6,11 +6,11 @@ class FCN(nn.Module):
         super(FCN, self).__init__()
         
         self.convs = [nn.Conv2d(
-            in_channels, hid_channels, kernel_size=(3, 3), stride=(2, 2),
+            in_channels, hid_channels, kernel_size=(3, 3), stride=(1, 1),
             padding=(0, 0), bias=False
         )]
         self.convs += [nn.Conv2d(
-            hid_channels, hid_channels, kernel_size=(3, 3), stride=(2, 2),
+            hid_channels, hid_channels, kernel_size=(3, 3), stride=(1, 1),
             padding=(0, 0), bias=False
         ) for _ in range(num_layers-1)]
         self.convs = nn.ModuleList(self.convs)
