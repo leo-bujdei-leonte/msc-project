@@ -42,6 +42,7 @@ transform = Compose([
     Normalize(0, 1),
 ])
 dataset = CIFAR100(root=exp.args.data_root, download=True, transform=transform)
+dataset.to_pixel_graphs()
 exp.prepare_dataset(dataset)
 
 # experiment run
