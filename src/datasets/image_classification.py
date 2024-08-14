@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import datasets
 from torch_geometric.loader import DataLoader as PyGDataLoader
 
-from src.utils.preprocess import random_split, image_to_pygraph
+from src.utils.preprocess import random_split, image_to_pygraph, resize_stack_slic_graph_patches
 from src.utils.segmentation import image_to_SLIC_graph
 
 class ImageClassificationDataset(Dataset):
@@ -40,10 +40,10 @@ class ImageClassificationDataset(Dataset):
             
             self.data = data
     
-    def to_slic_graphs(self, n_segments, compactness):
+    def _convert_to_slic(self, n_segments, compactness):
         g_path = os.sep.join([self.root, "graph", f"SLIC_{n_segments}_{compactness}.pkl"])
         if os.path.isfile(g_path):
-            self.data = pickle.load(open(g_path, "rb"))
+            data = pickle.load(open(g_path, "rb"))
             print("Loaded existing SLIC graphs")
         
         else:
@@ -54,9 +54,27 @@ class ImageClassificationDataset(Dataset):
                     print("Processed image", idx)
             os.makedirs(os.path.dirname(g_path), exist_ok=True)
             pickle.dump(data, open(g_path, "wb"))    
-            print("Converted image dadtaset to SLIC graphs")
+            print("Converted image dataset to SLIC graphs")
+        
+        return data
+    
+    def to_slic_graphs(self, n_segments, compactness, resize_stack_patches=None):
+        if resize_stack_patches is not None:
+            g_path = os.sep.join([self.root, "graph", f"SLIC_{n_segments}_{compactness}_resized_stacked_{resize_stack_patches}.pkl"])
+            if os.path.isfile(g_path):
+                self.data = pickle.load(open(g_path, "rb"))
+                print("Loaded existing resized and stacked graphs")
             
-            self.data = data
+            else:
+                self.data = self._convert_to_slic(n_segments, compactness)
+                
+                print("Resizing and stacking patches")
+                self.data = resize_stack_slic_graph_patches(self.data, resize_stack_patches)
+                os.makedirs(os.path.dirname(g_path), exist_ok=True)
+                pickle.dump(self.data, open(g_path, "wb"))
+        
+        else:
+            self.data = self._convert_to_slic(n_segments, compactness)
     
     def splits(self, ratios):
         assert sum(ratios) == 1

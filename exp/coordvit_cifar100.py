@@ -1,94 +1,60 @@
-import os
-import pickle
+from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
-from torch.utils.data import random_split, DataLoader
-from torch.optim import Adam
-from torch.nn import CrossEntropyLoss
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-
-from src.utils.preprocess import resize_stack_slic_graph_patches, collate_slic_graph_patches
 from src.models.slic_transformer import CoordViT
-from src.utils.training.image_classification import train_eval_test_loop, train_epoch_coordvit, eval_coordvit
-from src.utils.training.common import device, set_seed
-from src.utils.preprocess import random_split
-from src.utils.misc import rename_increment
+from src.experiments.image_classification import Experiment
+from src.datasets.image_classification import CIFAR100
+from src.utils.training.image_classification import coordvit_batch_processing_fn
+from src.utils.preprocess import collate_slic_graph_patches
 
-
-save_path = "./data/models/coordvit_cifar100/"
-        
-dataset = pickle.load(open("./data/image/CIFAR100/CIFAR_SLIC_graph_32_16_15.pkl", "rb"))
-dataset = resize_stack_slic_graph_patches(dataset, (8, 8)) # this is part of the model
-print("Finished preprocessing")
-
-batch_size = 32
-train_dataset, val_dataset, test_dataset = random_split(dataset, [.8, .1, .1], "CIFAR100")
-train_loader = DataLoader(
-    train_dataset,
-    batch_size=batch_size,
-    shuffle=True,
-    collate_fn=collate_slic_graph_patches,
-)
-val_loader = DataLoader(
-    val_dataset,
-    batch_size=batch_size,
-    shuffle=False,
-    collate_fn=collate_slic_graph_patches,
-)
-test_loader = DataLoader(
-    test_dataset,
-    batch_size=batch_size,
-    shuffle=False,
-    collate_fn=collate_slic_graph_patches,
-)
-
-NUM_EXP = 10
-
-for i in range(NUM_EXP):
-    print(f"Started experiment {i+1}")
-    
-    set_seed(i)
-    
-    image_size = 32
-    channel_size = 3
-    patch_size = 8
-    embed_size = 512
-    num_heads = 8
-    classes = 100
-    num_layers = 3
-    hidden_size = 256
-    dropout = 0.2
-    model = CoordViT(
-        image_size,
-        channel_size,
-        patch_size,
-        embed_size,
-        num_heads,
-        classes,
-        num_layers,
-        hidden_size,
-        dropout=dropout,
-    ).to(device)
-
-    optimizer = Adam(model.parameters(), lr=5e-5)
-    criterion = CrossEntropyLoss()
-    lr_scheduler = ReduceLROnPlateau(optimizer, mode="min", factor=0.5, patience=5)
-
-    num_epochs = 100
-    early_stopping = 10
-
-    metrics = train_eval_test_loop(
-        model,
-        optimizer,
-        criterion,
-        train_loader, 
-        val_loader, 
-        test_loader, 
-        num_epochs,
-        lr_scheduler=lr_scheduler,
-        early_stopping=early_stopping,
-        train_epoch_fn=train_epoch_coordvit,
-        eval_fn=eval_coordvit,
+# to be changed for each experiment
+save_path = "./data/models/coordvit_cifar100"
+data_root = "./data/image/CIFAR100"
+project = "CoordViT-CIFAR100"
+description = "CoordViT on CIFAR100"
+batch_processing_fn = coordvit_batch_processing_fn
+n_segments = 16
+compactness = 15
+resize_stack_patches = (8, 8)
+def model_init_fn(args):
+    return CoordViT(
+        args.image_size,
+        args.channel_size,
+        args.patch_size,
+        args.embed_size,
+        args.num_heads,
+        args.classes,
+        args.num_layers,
+        args.hidden_size,
+        dropout=args.dropout,
     )
 
-    os.makedirs(save_path, exist_ok=True)
-    pickle.dump(metrics, open(rename_increment(save_path+"metrics", "pkl"), "wb"))
+# experiment arguments
+extra_args = [
+    ("--save-path", str, save_path, "path to save the model"),
+    ("--data-root", str, data_root, "path to save the dataset"),
+    
+    ("--image-size",   int,   32,  "image size"),
+    ("--channel-size", int,   3,   "channel size"),
+    ("--patch-size",   int,   8,   "patch size"),
+    ("--embed-size",   int,   512, "patch embedding size"),
+    ("--num-heads",    int,   8,   "number of attention heads"),
+    ("--classes",      int,   100,  "number of classes"),
+    ("--num-layers",   int,   3,   "number of encoder layers"),
+    ("--hidden-size",  int,   256, "encoder dimension"),
+    ("--dropout",      float, 0.2, "encoder dimension"),
+]
+exp = Experiment(project, description)
+exp.parse_args(extra_args)
+
+# data preprocessing
+transform = Compose([
+    Resize((exp.args.image_size, exp.args.image_size)),
+    ToTensor(),
+    Normalize(0, 1),
+])
+dataset = CIFAR100(root=exp.args.data_root, download=True, transform=transform)
+dataset.to_slic_graphs(resize_stack_patches=resize_stack_patches, n_segments=n_segments, compactness=compactness)
+exp.prepare_dataset(dataset, graph_loader=False, batch_collate_fn=collate_slic_graph_patches)
+
+# experiment run
+exp.run(model_init_fn=model_init_fn, batch_processing_fn=batch_processing_fn)

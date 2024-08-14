@@ -45,7 +45,7 @@ def random_split(data, ratios, dataset_name):
 def resize_stack_slic_graph_patches(data, size):
     r = Resize(size)
 
-    for g in data:
+    for idx, g in enumerate(data):
         for i in range(len(g.imgs)):
             g.imgs[i] = (torch.Tensor(g.imgs[i] * g.masks[i]) / torch.sum(torch.Tensor(g.masks[i]), dim=(0, 1))).unsqueeze(0)
         # g.imgs = [torch.Tensor(g.imgs[i] * g.masks[i]).unsqueeze(0) for i in range(len(g.imgs))] 
@@ -54,6 +54,9 @@ def resize_stack_slic_graph_patches(data, size):
 
         if len(g.imgs.shape) == 3:
             g.imgs = g.imgs.unsqueeze(1)
+        
+        if idx % 1000 == 0:
+            print("Processed graph", idx)
 
     return data
 

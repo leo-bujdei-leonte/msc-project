@@ -11,13 +11,11 @@ from torch.nn import CrossEntropyLoss
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from src.utils.training.common import device, set_seed
-from src.utils.training.image_classification import train_eval_test_loop, train_epoch, eval, default_batch_processing_fn
-from src.utils.misc import rename_increment
-from src.utils.plotting import plot_train_val_test
+from src.utils.training.image_classification import train_eval_test_loop, default_batch_processing_fn
 from src.datasets.image_classification import ImageClassificationDataset
 
 _DEFAULT_ARGS = [
-    ("--print-stats", int, 1, "print training statistics"),
+    # ("--print-stats", int, 1, "print training statistics"),
     ("--save-model",  int, 1, "save the model"),
     ("--log-wandb",   int, 1, "log to Weights and Biases"),
 
@@ -34,7 +32,7 @@ _DEFAULT_ARGS = [
     ("--use-lr-scheduler",      int,   1,    "use ReduceLROnPlateau learning rate scheduler"),
     ("--lr-scheduler-factor",   float, 0.5,  "learning rate scheduler factor"),
     ("--lr-scheduler-patience", int,   5,    "learning rate scheduler patience"),
-    ("--early-stopping",        int,   10,   "early stopping patience"),
+    ("--early-stopping",        int,   20,   "early stopping patience"),
     ("--weight-decay",          float, 0.0,  "weight decay"),
 ]
 
@@ -113,19 +111,19 @@ class Experiment():
                     best_model,
                     open(os.sep.join([self.args.save_path, "models", model_name+".pt"]), "wb")
                 )
-            if self.args.print_stats:
-                plot_train_val_test(
-                    list(range(self.args.num_epochs)), metrics["train_accs"], metrics["val_accs"], metrics["test_accs"],
-                    title="Accuracy",
-                    save_path=os.sep.join([self.args.save_path, "accuracies", model_name+".png"])
-                )
-                plot_train_val_test(
-                    list(range(self.args.num_epochs)), metrics["train_losses"], metrics["val_losses"], metrics["test_losses"],
-                    title="Loss",
-                    save_path=os.sep.join([self.args.save_path, "losses", model_name+".png"])
-                )
+            # if self.args.print_stats:
+            #     plot_train_val_test(
+            #         list(range(self.args.num_epochs)), metrics["train_accs"], metrics["val_accs"], metrics["test_accs"],
+            #         title="Accuracy",
+            #         save_path=os.sep.join([self.args.save_path, "accuracies", model_name+".png"])
+            #     )
+            #     plot_train_val_test(
+            #         list(range(self.args.num_epochs)), metrics["train_losses"], metrics["val_losses"], metrics["test_losses"],
+            #         title="Loss",
+            #         save_path=os.sep.join([self.args.save_path, "losses", model_name+".png"])
+            #     )
                 
-                raise NotImplementedError()
+            #     raise NotImplementedError()
             
         pickle.dump(
             (self.args, full_metrics),

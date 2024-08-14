@@ -25,38 +25,24 @@ def gcn_batch_processing_fn(batch, model):
     out = model(
         batch.x.to(device),
         batch.edge_index.to(device),
-        batch.batch.to(device)
+        batch.batch.to(device),
     )
     
     return out, batch.y.to(device)
 
-
-def train_epoch_gcn(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
-                loader: DataLoader, normalise_loss=True) -> tuple[float, float]:
-    model.train()
-    correct, total_loss, total = 0, 0, 0
-    for batch in loader:
-        x, edge_index, batch, y = batch.x.to(device), batch.edge_index.to(device), batch.batch.to(device), batch.y.to(device)
-        
-        optimizer.zero_grad()
-        
-        out = model(x, edge_index, batch)
-        loss = criterion(out, y)
-        total_loss += loss.item()
-        correct += out.argmax(dim=-1).eq(y).sum().item()
-        total += len(y)
-        
-        loss.backward()
-        optimizer.step()
+def coordvit_batch_processing_fn(batch, model):
+    # out = model(
+    #     batch.imgs.to(device),
+    #     batch.centroid.to(device),
+    #     batch.mask.to(device),
+    # )
+    out = model(
+        batch[0].to(device),
+        batch[1].to(device),
+        batch[2].to(device),
+    )
     
-    if total == 0:
-        return 0, 1
-    
-    if normalise_loss:
-        total_loss /= total
-    
-    return total_loss, correct / total
-    
+    return out, batch[3].to(device)
 
 def train_epoch(model: nn.Module, optimizer: Optimizer, criterion: nn.Module,
                 loader: DataLoader, batch_processing_fn=default_batch_processing_fn,
@@ -216,7 +202,7 @@ def train_eval_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.M
             print("Early stopping")
             break
         
-        interval = time()
+        start = time()
 
         train_loss, train_acc = train_epoch(model, optimizer, criterion, train_loader, normalise_loss=normalise_loss, batch_processing_fn=batch_processing_fn)
         val_loss, val_acc = eval(model, criterion, val_loader, normalise_loss=normalise_loss, batch_processing_fn=batch_processing_fn)
@@ -224,7 +210,7 @@ def train_eval_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.M
         if val_acc > max_val_acc:
             max_val_acc = val_acc
             best_model = deepcopy(model)
-            num_not_max = 0
+            # num_not_max = 0
             new_flag = True
         else:
             num_not_max += 1
@@ -233,7 +219,7 @@ def train_eval_test_loop(model: nn.Module, optimizer: Optimizer, criterion: nn.M
         if lr_scheduler is not None:
             lr_scheduler.step(epoch=i, metrics=train_loss)
 
-        interval = time() - interval
+        interval = time() - start
         
         print(
             f"Epoch {i:03d}: train loss {train_loss:.5f},",
