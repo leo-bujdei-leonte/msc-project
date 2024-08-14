@@ -36,6 +36,10 @@ _DEFAULT_ARGS = [
     ("--weight-decay",          float, 0.0,  "weight decay"),
 ]
 
+_MUST_HAVE_ARGS = [
+    ("--model-description", str, "model description for wandb logging")
+]
+
 class Experiment():
     def __init__(self, name, description) -> None:
         self.name = name
@@ -47,6 +51,8 @@ class Experiment():
         assert "--save-path" in arg_names and "--data-root" in arg_names
         for arg in extra_args + [arg for arg in _DEFAULT_ARGS if arg[0] not in arg_names]:
             self.parser.add_argument(arg[0], type=arg[1], default=arg[2], help=arg[3])
+        for arg in _MUST_HAVE_ARGS:
+            self.parser.add_argument(arg[0], type=arg[1], help=arg[2])
         self.args = self.parser.parse_args()
         assert self.args.skip_count <= self.args.num_exp
             
@@ -67,7 +73,7 @@ class Experiment():
         
         full_metrics = []
         for i in range(self.args.skip_count, self.args.num_exp):
-            model_name = str(time())
+            model_name = self.args.model_description + "-" + str(time())
             
             print(f"Started experiment {i+1}")
             set_seed(i)
