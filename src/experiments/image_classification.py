@@ -52,7 +52,7 @@ class Experiment():
         for arg in extra_args + [arg for arg in _DEFAULT_ARGS if arg[0] not in arg_names]:
             self.parser.add_argument(arg[0], type=arg[1], default=arg[2], help=arg[3])
         for arg in _MUST_HAVE_ARGS:
-            self.parser.add_argument(arg[0], type=arg[1], help=arg[2])
+            self.parser.add_argument(arg[0], type=arg[1], help=arg[2], required=True)
         self.args = self.parser.parse_args()
         assert self.args.skip_count <= self.args.num_exp
             
@@ -79,6 +79,7 @@ class Experiment():
             set_seed(i)
             
             model = model_init_fn(self.args).to(device)
+            print("Model has", sum(p.numel() for p in model.parameters()), "parameters")
             
             optimizer = Adam(model.parameters(), lr=self.args.lr, weight_decay=self.args.weight_decay)
             criterion = CrossEntropyLoss()

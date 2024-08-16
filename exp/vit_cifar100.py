@@ -32,7 +32,7 @@ extra_args = [
     ("--data-root", str, data_root, "path to save the dataset"),
     
     ("--batch-size",   int,   4096, "batch size for the dataloader"),
-    ("--weight-decay", float, 0.1,  "weight decay"),
+    ("--weight-decay", float, 0.0,  "weight decay"),
     
     ("--image-size",    int,   224,  "image size"),
     ("--channel-size",  int,   3,    "channel size"),
