@@ -55,6 +55,9 @@ class Experiment():
             self.parser.add_argument(arg[0], type=arg[1], help=arg[2], required=True)
         self.args = self.parser.parse_args()
         assert self.args.skip_count <= self.args.num_exp
+        
+        print("Registered all arguments:")
+        print(self.args)
             
     def prepare_dataset(self, dataset: ImageClassificationDataset, graph_loader=False, batch_collate_fn=None):
         dataset.splits((self.args.train_split, self.args.val_split, self.args.test_split))

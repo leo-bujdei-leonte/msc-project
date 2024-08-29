@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH --job-name=025
+#SBATCH --output=data/slurm_logs/025.out
+#SBATCH --error=data/slurm_logs/025.err
+#SBATCH --time=24:00:00
+#SBATCH --mem=36000
+#SBATCH --gres=gpu:1
+#SBATCH --qos=medium
+#SBATCH --nodelist=klein
+
+srun -u /slurm-storage/leobuj/.conda/envs/leobuj-env/bin/python -m exp.vit_cifar100 \
+    --model-description small_vit --num-exp 1 \
+    --image-size 224 --patch-size 16 \
+    --num-epochs 200 --early-stopping 200 --lr 1e-6 --batch-size 64 \
+    --weight-decay 0.0 --dropout 0.2 \
+    --num-heads 12 --num-layers 12 --mlp-size 3072 --embed-size 768 --hidden-size 768
