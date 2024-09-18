@@ -22,13 +22,17 @@ def default_batch_processing_fn(batch, model):
     return out, y
 
 def gcn_batch_processing_fn(batch, model):
-    out = model(
-        batch.x.to(device),
-        batch.edge_index.to(device),
-        batch.batch.to(device),
-    )
+    batch = batch.to(device)
+    out = model(batch)
     
-    return out, batch.y.to(device)
+    return out, batch.y
+
+def gat_batch_processing_fn(batch, model):
+    # TODO
+    batch = batch.to(device)
+    out = model(batch.x, batch.edge_index, batch.batch)
+    
+    return out, batch.y
 
 def coordvit_batch_processing_fn(batch, model):
     # out = model(

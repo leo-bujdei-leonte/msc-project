@@ -1,9 +1,11 @@
 import os
 import pickle
 
+import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import datasets
 from torch_geometric.loader import DataLoader as PyGDataLoader
+from torch_geometric.transforms import AddLaplacianEigenvectorPE
 
 from src.utils.preprocess import random_split, image_to_pygraph, resize_stack_slic_graph_patches
 from src.utils.segmentation import image_to_SLIC_graph
@@ -22,7 +24,7 @@ class ImageClassificationDataset(Dataset):
     def __getitem__(self, index):
         return self.data[index]
     
-    def to_pixel_graphs(self):
+    def to_pixel_graphs(self, laplacian_pe=False, **kwargs):
         g_path = os.sep.join([self.root, "graph", "pixel.pkl"])
         if os.path.isfile(g_path):
             self.data = pickle.load(open(g_path, "rb"))
@@ -39,6 +41,16 @@ class ImageClassificationDataset(Dataset):
             print("Converted image dataset to pixel graphs")
             
             self.data = data
+        
+        if laplacian_pe: # not recommended; use in the model unless overhead is too high
+            transform = AddLaplacianEigenvectorPE(**kwargs)
+            for idx, datum in enumerate(self.data):
+                pe = transform(datum).laplacian_eigenvector_pe
+                datum.x = torch.cat((datum.x, pe), dim=-1)
+                if idx % 1000 == 0:
+                    print("Processed image", idx)
+            print("Precomputed Laplacian PE")
+            
     
     def _convert_to_slic(self, n_segments, compactness):
         g_path = os.sep.join([self.root, "graph", f"SLIC_{n_segments}_{compactness}.pkl"])

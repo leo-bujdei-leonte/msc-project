@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH --job-name=045
+#SBATCH --output=data/slurm_logs/045.out
+#SBATCH --error=data/slurm_logs/045.err
+#SBATCH --time=24:00:00
+#SBATCH --mem=36000
+#SBATCH --gres=gpu:1
+#SBATCH --qos=medium
+
+srun -u /slurm-storage/leobuj/.conda/envs/leobuj-env/bin/python -m exp.gcn_cifar100 \
+    --model-description gcn-no-pe --num-exp 1 \
+    --image-size 32 \
+    --num-epochs 200 --early-stopping 10 --lr 5e-05 --batch-size 32 \
+    --weight-decay 0.0 \
+    --num-conv-layers 3 --num-lin-layers 3 --hidden-size 256 \
+    --laplacian-pe 0 --laplacian-k 0 --precompute-laplacian 0

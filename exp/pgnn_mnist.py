@@ -1,6 +1,8 @@
+# TODO
+
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
-from src.models.gcn import GCN
+from src.models.pgnn import PGNN
 from src.experiments.image_classification import Experiment
 from src.datasets.image_classification import MNIST
 from src.utils.training.image_classification import gcn_batch_processing_fn
@@ -11,9 +13,8 @@ extra_args = [
     ("--data-root", str, "./data/image/MNIST",      "path to save the dataset"),
     
     ("--laplacian-pe",  int, 0,   "add laplacian eigenvector positional encodings"),
-    ("--laplacian-k",   int, 256, "number of non-trivial positional eigenvectors"),
+    ("--laplacian-k",   int, 100, "number of non-trivial positional eigenvectors"),
     ("--laplacian-undirected", int, 1,   "whether graph is undirected for positional encodings"),
-    ("--precompute-laplacian", int, 0, "compute PE before batching"),
     
     ("--image-size",      int, 28,  "image size"),
     ("--channel-size",    int, 1,   "channel size"),
@@ -32,14 +33,11 @@ transform = Compose([
     Normalize(0, 1),
 ])
 dataset = MNIST(root=exp.args.data_root, download=True, transform=transform)
-if exp.args.precompute_laplacian:
-    dataset.to_pixel_graphs(
-        laplacian_pe=exp.args.laplacian_pe,
-        k=exp.args.laplacian_k,
-        is_undirected=exp.args.laplacian_undirected
-    )
-else:
-    dataset.to_pixel_graphs()
+dataset.to_pixel_graphs(
+    laplacian_pe=exp.args.laplacian_pe,
+    k=exp.args.laplacian_k,
+    is_undirected=exp.args.laplacian_undirected
+)
 exp.prepare_dataset(dataset, graph_loader=True)
 
 # experiment run
@@ -50,18 +48,6 @@ exp.run(
         args.hidden_size,
         args.classes,
         args.num_lin_layers,
-        args.laplacian_pe,
-        args.laplacian_k,
-        args.laplacian_undirected
-    ) if not args.precompute_laplacian else GCN(
-        args.num_conv_layers,
-        args.channel_size + args.laplacian_k,
-        args.hidden_size,
-        args.classes,
-        args.num_lin_layers,
-        False,
-        args.laplacian_k,
-        args.laplacian_undirected
     ),
     batch_processing_fn=gcn_batch_processing_fn,
 )
