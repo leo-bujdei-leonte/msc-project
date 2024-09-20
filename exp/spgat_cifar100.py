@@ -60,6 +60,8 @@ transform = Compose([
 dataset = CIFAR100(root=exp.args.data_root, download=True, transform=transform)
 if exp.args.sp_agg == "linear":
     dataset.to_slic_graphs(resize_stack_patches=resize_stack_patches, n_segments=n_segments, compactness=compactness)
+elif exp.args.sp_agg == "lrgb":
+    dataset.to_slic_graphs(n_segments=n_segments, compactness=compactness, lrgb_stats=True)
 else:
     raise NotImplementedError()
 exp.prepare_dataset(dataset, graph_loader=True)
