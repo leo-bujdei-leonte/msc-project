@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATConv, global_mean_pool
 from torch_geometric.transforms import AddLaplacianEigenvectorPE
+from torchvision.ops import RoIPool
 
 from .vit import PositionalEncoding2D
 
@@ -64,8 +65,31 @@ class PixelGAT(nn.Module):
         return self
 
 class SPRCNN(nn.Module):
-    def __init__(self, ):
-        ...
+    def __init__(self, in_channels, hid_channels, out_channels, num_layers, final_grid_size=4, dropout=0.2):
+        super(SPRCNN, self).__init__()
+        
+        self.fcn = nn.Sequential(
+            nn.Conv2d(in_channels, hid_channels, 3, padding="same"),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+        )
+        for _ in range(num_layers-2):
+            self.fcn.append(nn.Conv2d(hid_channels, hid_channels, 3, padding="same"))
+            self.fcn.append(nn.ReLU())
+            self.fcn.append(nn.Dropout(dropout))
+        self.fcn.append(nn.Conv2d(hid_channels, out_channels, 3, padding="same"))
+        self.fcn.append(nn.ReLU())
+        self.fcn.append(nn.Dropout(dropout))
+        
+        self.pool = RoIPool((final_grid_size, final_grid_size))
+        self.grid_size = final_grid_size
+    
+    def forward(self, x, masks):
+        x = self.fcn(x)
+        
+        n, c, h, w = x.size()
+        
+        rois = torch.tensor([0, 0, 0, ])
 
 class SPResizedLinear(nn.Module):
     def __init__(self, patch_size, embed_size):
@@ -77,6 +101,17 @@ class SPResizedLinear(nn.Module):
         x = x.reshape(n, c*h*w)
         
         return self.lin(x)
+
+class SPLRGB(nn.Module):
+    def __init__(self, input_dim, embed_size):
+        self.lin = nn.Linear(input_dim*4, embed_size)
+    
+    def forward(self, x, masks):
+        n, c, h, w = x.size()
+        
+        num_px = torch.sum(masks, dim=-1)
+        mean = torch.sum(x, dim=(-1, -2)) / num_px
+        
 
 class SPGAT(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, num_heads,
@@ -116,11 +151,12 @@ class SPGAT(nn.Module):
         self.mlp.append(nn.Linear(hidden_dim, output_dim))
 
     def forward(self, data):
-        # edge_index=[2, 2090], labels=[504, 1], weight=[2090], count=[2090], num_nodes=504, centroid=[504, 2], imgs=[504, 1, 7, 7], masks=[32], y=[32], batch=[504], ptr=[33]
-        x, edge_index, batch = data.imgs, data.edge_index, data.batch
+        edge_index, batch = data.edge_index, data.batch
         
         if self.sp == "linear":
-            x = self.sp_agg(x)
+            x = self.sp_agg(data.imgs)
+        elif self.sp == "lrgb":
+            x = self.sp_agg(data.x.float())
         
         if self.use_pe:
             pe = self.pe(data.centroid.int()).to(x.device)

@@ -10,5 +10,5 @@
 #SBATCH --nodelist=noether
 
 srun -u /slurm-storage/leobuj/.conda/envs/leobuj-env/bin/python -m exp.spgat_mnist \
-    --model-description lin-no-pe --batch-size 32 \
-    --pe 0
+    --model-description lrgb-no-pe --batch-size 32 \
+    --pe 0 --sp-agg lrgb --channel-size 4

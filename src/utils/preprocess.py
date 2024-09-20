@@ -6,6 +6,8 @@ from torchvision.transforms import Resize
 from torch.nn.utils.rnn import pad_sequence
 from torch_geometric.data import Data
 
+import numpy as np
+
 
 def random_split(data, ratios, dataset_name):
     if len(ratios) == 2:
@@ -71,6 +73,47 @@ def collate_slic_graph_patches(batch):
     y = torch.tensor([g.y for g in batch], dtype=torch.long)
 
     return imgs, coords, mask, y
+
+def lrgb_statistics(img, mask):
+    if len(img.shape) == 3:
+        expanded_mask = mask.reshape(1, mask.shape[0], mask.shape[1]).repeat(img.shape[0], axis=0)
+        masked_img = np.ma.masked_array(img, ~expanded_mask)
+        axes = (-1, -2)
+        res = torch.tensor(np.concatenate([
+            masked_img.mean(axis=axes),
+            masked_img.std(axis=axes),
+            masked_img.min(axis=axes),
+            masked_img.max(axis=axes),
+        ]))
+        return res
+    
+    elif len(img.shape) == 2:
+        masked_img = np.ma.masked_array(img, ~mask)
+        res = torch.tensor(np.array([
+            masked_img.mean(),
+            masked_img.std(),
+            masked_img.min(),
+            masked_img.max(),
+        ]))
+        return res
+    
+    else:
+        raise NotImplementedError()
+
+def slic_graph_patches_to_lrgb_stats(data):
+    # each patch becomes a 4c-dimensional embedding with mean, std, min, max
+    for idx, g in enumerate(data):
+        g.x = []
+        for i in range(len(g.imgs)):
+            g.x.append(lrgb_statistics(g.imgs[i], g.masks[i]))
+        g.x = torch.stack(g.x, dim=0)
+        
+        g.imgs, g.masks = None, None
+        
+        if idx % 1000 == 0:
+            print("Processed graph", idx)
+    
+    return data
 
 def generate_all_edges(h, w):
     directions = [

@@ -7,7 +7,7 @@ from torchvision import datasets
 from torch_geometric.loader import DataLoader as PyGDataLoader
 from torch_geometric.transforms import AddLaplacianEigenvectorPE
 
-from src.utils.preprocess import random_split, image_to_pygraph, resize_stack_slic_graph_patches
+from src.utils.preprocess import random_split, image_to_pygraph, resize_stack_slic_graph_patches, slic_graph_patches_to_lrgb_stats
 from src.utils.segmentation import image_to_SLIC_graph
 
 class ImageClassificationDataset(Dataset):
@@ -70,7 +70,8 @@ class ImageClassificationDataset(Dataset):
         
         return data
     
-    def to_slic_graphs(self, n_segments, compactness, resize_stack_patches=None):
+    def to_slic_graphs(self, n_segments, compactness, resize_stack_patches=None,
+                       lrgb_stats=False):
         if resize_stack_patches is not None:
             g_path = os.sep.join([self.root, "graph", f"SLIC_{n_segments}_{compactness}_resized_stacked_{resize_stack_patches}.pkl"])
             if os.path.isfile(g_path):
@@ -82,6 +83,20 @@ class ImageClassificationDataset(Dataset):
                 
                 print("Resizing and stacking patches")
                 self.data = resize_stack_slic_graph_patches(self.data, resize_stack_patches)
+                os.makedirs(os.path.dirname(g_path), exist_ok=True)
+                pickle.dump(self.data, open(g_path, "wb"))
+        
+        elif lrgb_stats:
+            g_path = os.sep.join([self.root, "graph", f"SLIC_{n_segments}_{compactness}_lrgb.pkl"])
+            if os.path.isfile(g_path):
+                self.data = pickle.load(open(g_path, "rb"))
+                print("Loaded existing lrgb graphs")
+            
+            else:
+                self.data = self._convert_to_slic(n_segments, compactness)
+                
+                print("Computing LRGB statistics")
+                self.data = slic_graph_patches_to_lrgb_stats(self.data)
                 os.makedirs(os.path.dirname(g_path), exist_ok=True)
                 pickle.dump(self.data, open(g_path, "wb"))
         
