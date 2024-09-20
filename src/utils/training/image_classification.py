@@ -28,6 +28,12 @@ def gcn_batch_processing_fn(batch, model):
     return out, batch.y
 
 def gat_batch_processing_fn(batch, model):
+    batch = batch.to(device)
+    out = model(batch)
+    
+    return out, batch.y
+
+def spgat_batch_processing_fn(batch, model):
     # TODO
     batch = batch.to(device)
     out = model(batch)
