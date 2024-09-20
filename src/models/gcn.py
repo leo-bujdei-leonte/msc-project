@@ -26,9 +26,7 @@ class GCN(nn.Module):
     def forward(self, data, batch=None):
         x, edge_index, batch = data.x, data.edge_index, data.batch
         if self.laplacian_pe:
-            print("1")
             pe = self.transform(data).laplacian_eigenvector_pe.to(x.device)
-            print("2")
             x = torch.cat((x, pe), dim=-1)
         
         x = self.convs[0](x, edge_index)

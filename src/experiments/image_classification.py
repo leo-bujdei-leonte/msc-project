@@ -25,7 +25,7 @@ _DEFAULT_ARGS = [
     ("--val-split",   float, 0.1, "val split for the dataset"),
     ("--test-split",  float, 0.1, "test split for the dataset"),
 
-    ("--num-exp",               int,   10,   "number of experiments to run"),
+    ("--num-exp",               int,   1,    "number of experiments to run"),
     ("--skip-count",            int,   0,    "skip first k experiments"),
     ("--num-epochs",            int,   100,  "number of epochs to train"),
     ("--lr",                    float, 5e-5, "learning rate"),

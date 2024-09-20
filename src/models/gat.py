@@ -1,63 +1,32 @@
 import torch
 import torch.nn as nn
-import torch_geometric as tg
 import torch.nn.functional as F
-from torch_geometric.nn import MessagePassing, global_mean_pool
-from torch_geometric.utils import add_self_loops, degree
-from torch.nn import init
-import pdb
+from torch_geometric.nn import GATConv, global_mean_pool
+from torch_geometric.transforms import AddLaplacianEigenvectorPE
 
+from .vit import PositionalEncoding2D
 
-class GAT1(torch.nn.Module):
-    def __init__(self, input_dim, feature_dim, hidden_dim, output_dim,
-                 feature_pre=True, layer_num=2, dropout=True, **kwargs):
-        super(GAT1, self).__init__()
-        self.feature_pre = feature_pre
-        self.layer_num = layer_num
-        self.dropout = dropout
-        if feature_pre:
-            self.linear_pre = nn.Linear(input_dim, feature_dim)
-            self.conv_first = tg.nn.GATConv(feature_dim, hidden_dim)
-        else:
-            self.conv_first = tg.nn.GATConv(input_dim, hidden_dim)
-        self.conv_hidden = nn.ModuleList([tg.nn.GATConv(hidden_dim, hidden_dim) for i in range(layer_num - 2)])
-        self.conv_out = tg.nn.GATConv(hidden_dim, output_dim)
-
-    def forward(self, data):
-        x, edge_index = data.x, data.edge_index
-        if self.feature_pre:
-            x = self.linear_pre(x)
-        x = self.conv_first(x, edge_index)
-        x = F.relu(x)
-        if self.dropout:
-            x = F.dropout(x, training=self.training)
-        for i in range(self.layer_num-2):
-            x = self.conv_hidden[i](x, edge_index)
-            x = F.relu(x)
-            if self.dropout:
-                x = F.dropout(x, training=self.training)
-        x = self.conv_out(x, edge_index)
-        x = F.normalize(x, p=2, dim=-1)
-        return x
-
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch_geometric.nn import GATConv
-
-class GAT2(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, num_heads, num_gat_layers, num_mlp_layers, dropout=0.2):
-        super(GAT2, self).__init__()
+class PixelGAT(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, num_heads,
+                 num_gat_layers, num_mlp_layers, dropout=0.2,
+                 pe="", laplacian_k=5, laplacian_undirected=True,
+                 sinusoidal_size=256, image_size=224):
+        super(PixelGAT, self).__init__()
+        
+        self.use_pe = pe
+        if pe == "laplacian":
+            self.pe = AddLaplacianEigenvectorPE(laplacian_k, is_undirected=laplacian_undirected)
+            input_dim += laplacian_k
+        elif pe == "sinusoidal":
+            self.pe = PositionalEncoding2D(sinusoidal_size, image_size**2)
+            input_dim += sinusoidal_size
+        
         self.layers = nn.ModuleList()
-
         # Input layer
         self.layers.append(GATConv(input_dim, hidden_dim, heads=num_heads, dropout=dropout))
-
         # Hidden layers
         for _ in range(num_gat_layers - 2):
             self.layers.append(GATConv(hidden_dim * num_heads, hidden_dim, heads=num_heads, dropout=dropout))
-        
         self.layers.append(GATConv(hidden_dim * num_heads, hidden_dim, heads=num_heads, dropout=dropout, concat=False))
         
         self.dropout = dropout
@@ -69,7 +38,16 @@ class GAT2(nn.Module):
             self.mlp.append(nn.ReLU())
         self.mlp.append(nn.Linear(hidden_dim, output_dim))
 
-    def forward(self, x, edge_index, batch):
+    def forward(self, data):
+        x, edge_index, batch = data.x, data.edge_index, data.batch
+        
+        if self.use_pe == "laplacian":
+            pe = self.pe(data).laplacian_eigenvector_pe.to(x.device)
+            x = torch.cat((x, pe), dim=-1)
+        elif self.use_pe == "sinusoidal":
+            pe = self.pe(data.coords.int()).to(x.device)
+            x = torch.cat((x, pe), dim=-1)
+        
         for layer in self.layers[:-1]:
             x = F.elu(layer(x, edge_index))
             x = F.dropout(x, p=self.dropout, training=self.training)
@@ -78,3 +56,9 @@ class GAT2(nn.Module):
         x = global_mean_pool(x, batch)
         
         return self.mlp(x)
+    
+    def to(self, device):
+        super(PixelGAT, self).to(device)
+        if self.use_pe == "sinusoidal":
+            self.pe = self.pe.to(device)
+        return self

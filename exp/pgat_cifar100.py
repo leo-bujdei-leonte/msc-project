@@ -1,0 +1,71 @@
+from torchvision.transforms import Compose, Resize, ToTensor, Normalize
+
+from src.models.gat import PixelGAT
+from src.experiments.image_classification import Experiment
+from src.datasets.image_classification import CIFAR100
+from src.utils.training.image_classification import gat_batch_processing_fn
+
+# to be changed for each experiment
+save_path = "./data/models/gat_cifar100"
+data_root = "./data/image/CIFAR100"
+project = "GAT-CIFAR100"
+description = "GAT on CIFAR100"
+batch_processing_fn = gat_batch_processing_fn
+def model_init_fn(args):
+    return PixelGAT(
+        args.channel_size + args.laplacian_k * args.precompute_laplacian,
+        args.hidden_size,
+        args.classes,
+        args.num_heads,
+        args.num_gat_layers,
+        args.num_mlp_layers,
+        args.dropout,
+        args.pe if not args.precompute_laplacian else "",
+        args.laplacian_k,
+        args.laplacian_undirected,
+        args.sinusoidal_size,
+        args.image_size,
+    )
+
+# experiment arguments
+extra_args = [
+    ("--save-path", str, save_path, "path to save the model"),
+    ("--data-root", str, data_root, "path to save the dataset"),
+    
+    ("--pe", str, "", "positional encodings: laplacian | sinusoidal"),
+    ("--laplacian-k",   int, 256, "number of non-trivial positional eigenvectors"),
+    ("--laplacian-undirected", int, 1,   "whether graph is undirected for positional encodings"),
+    ("--precompute-laplacian", int, 0, "compute PE before batching"),
+    ("--sinusoidal-size", int, 256, "size of appended sinusoidal PE"),
+    
+    ("--image-size",      int, 32,  "image size"),
+    ("--channel-size",    int, 3,   "channel size"),
+    ("--classes",         int, 100,  "number of classes"),
+    ("--num-gat-layers", int, 3,   "number of graph attention layers"),
+    ("--num-mlp-layers",  int, 2,   "number of mlp layers"),
+    ("--num-heads",  int, 8,   "number of attention heads"),
+    ("--hidden-size",     int, 256, "hidden size"),
+    ("--dropout",       float, 0.2, "dropout"),
+]
+exp = Experiment(project, description)
+exp.parse_args(extra_args)
+
+# data preprocessing
+transform = Compose([
+    Resize((exp.args.image_size, exp.args.image_size)),
+    ToTensor(),
+    Normalize(0, 1),
+])
+dataset = CIFAR100(root=exp.args.data_root, download=True, transform=transform)
+if exp.args.precompute_laplacian:
+    dataset.to_pixel_graphs(
+        laplacian_pe=exp.args.pe == "laplacian",
+        k=exp.args.laplacian_k,
+        is_undirected=exp.args.laplacian_undirected,
+    )
+else:
+    dataset.to_pixel_graphs()
+exp.prepare_dataset(dataset, graph_loader=True)
+
+# experiment run
+exp.run(model_init_fn=model_init_fn, batch_processing_fn=batch_processing_fn)

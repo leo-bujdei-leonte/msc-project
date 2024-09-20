@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH --job-name=061
+#SBATCH --output=data/slurm_logs/061.out
+#SBATCH --error=data/slurm_logs/061.err
+#SBATCH --time=24:00:00
+#SBATCH --mem=36000
+#SBATCH --gres=gpu:1
+#SBATCH --qos=medium
+#SBATCH --nodelist=noether
+
+srun -u /slurm-storage/leobuj/.conda/envs/leobuj-env/bin/python -m exp.pgat_mnist \
+    --model-description gat-sin-6-not-4 --batch-size 32 \
+    --pe sinusoidal --sinusoidal-size 6

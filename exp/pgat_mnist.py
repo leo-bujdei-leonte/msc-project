@@ -1,6 +1,6 @@
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
-from src.models.gat import GAT2, GAT1
+from src.models.gat import PixelGAT
 from src.experiments.image_classification import Experiment
 from src.datasets.image_classification import MNIST
 from src.utils.training.image_classification import gat_batch_processing_fn
@@ -12,14 +12,19 @@ project = "GAT-MNIST"
 description = "GAT on MNIST"
 batch_processing_fn = gat_batch_processing_fn
 def model_init_fn(args):
-    return GAT2(
-        args.channel_size,
+    return PixelGAT(
+        args.channel_size + args.laplacian_k * args.precompute_laplacian,
         args.hidden_size,
         args.classes,
         args.num_heads,
         args.num_gat_layers,
         args.num_mlp_layers,
         args.dropout,
+        args.pe if not args.precompute_laplacian else "",
+        args.laplacian_k,
+        args.laplacian_undirected,
+        args.sinusoidal_size,
+        args.image_size,
     )
 
 # experiment arguments
@@ -27,12 +32,11 @@ extra_args = [
     ("--save-path", str, save_path, "path to save the model"),
     ("--data-root", str, data_root, "path to save the dataset"),
     
-    ("--laplacian-pe",  int, 0,   "add laplacian eigenvector positional encodings"),
+    ("--pe", str, "", "positional encodings: laplacian | sinusoidal"),
     ("--laplacian-k",   int, 256, "number of non-trivial positional eigenvectors"),
     ("--laplacian-undirected", int, 1,   "whether graph is undirected for positional encodings"),
     ("--precompute-laplacian", int, 0, "compute PE before batching"),
-    
-    ("--sinusoidal-pe", int, 0, "add sinusoidal PE"),
+    ("--sinusoidal-size", int, 256, "size of appended sinusoidal PE"),
     
     ("--image-size",      int, 28,  "image size"),
     ("--channel-size",    int, 1,   "channel size"),
@@ -55,9 +59,9 @@ transform = Compose([
 dataset = MNIST(root=exp.args.data_root, download=True, transform=transform)
 if exp.args.precompute_laplacian:
     dataset.to_pixel_graphs(
-        laplacian_pe=exp.args.laplacian_pe,
+        laplacian_pe=exp.args.pe == "laplacian",
         k=exp.args.laplacian_k,
-        is_undirected=exp.args.laplacian_undirected
+        is_undirected=exp.args.laplacian_undirected,
     )
 else:
     dataset.to_pixel_graphs()

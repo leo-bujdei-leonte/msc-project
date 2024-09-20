@@ -6,13 +6,17 @@ import math
 
 
 class PositionalEncoding2D(nn.Module):
-    def __init__(self, dim, max_len=1000):
+    def __init__(self, dim, max_len=1000):        
         super(PositionalEncoding2D, self).__init__()
+        
+        assert dim % 2 == 0
+        
         self.dim = dim
         
         self.pe = torch.zeros(max_len, dim)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, dim, 2).float() * (-math.log(10000.0) / dim))
+
         self.pe[:, 0::2] = torch.sin(position * div_term)
         self.pe[:, 1::2] = torch.cos(position * div_term)
     

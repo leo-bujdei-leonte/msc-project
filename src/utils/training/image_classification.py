@@ -30,7 +30,7 @@ def gcn_batch_processing_fn(batch, model):
 def gat_batch_processing_fn(batch, model):
     # TODO
     batch = batch.to(device)
-    out = model(batch.x, batch.edge_index, batch.batch)
+    out = model(batch)
     
     return out, batch.y
 

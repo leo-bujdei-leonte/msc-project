@@ -133,4 +133,12 @@ def image_to_pygraph(data):
     
     x = img.reshape(c, -1).T
     
-    return Data(x=x, edge_index=edge_index, y=y)
+    coords = torch.cartesian_prod(torch.arange(h), torch.arange(w))
+    
+    return Data(x=x, edge_index=edge_index, y=y, coords=coords)
+
+if __name__ == "__main__":
+    import pickle
+    
+    image = pickle.load(open("./data/image/example.pkl", "rb"))
+    print(image_to_pygraph((image, 1)).coords.shape)
