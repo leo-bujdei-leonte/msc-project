@@ -48,11 +48,11 @@ def resize_stack_slic_graph_patches(data, size):
     r = Resize(size)
 
     for idx, g in enumerate(data):
-        for i in range(len(g.imgs)):
-            g.imgs[i] = (torch.Tensor(g.imgs[i] * g.masks[i]) / torch.sum(torch.Tensor(g.masks[i]), dim=(0, 1))).unsqueeze(0)
+        # for i in range(len(g.imgs)):
+        #     g.imgs[i] = (torch.Tensor(g.imgs[i] * g.masks[i]) / torch.sum(torch.Tensor(g.masks[i]), dim=(0, 1))).unsqueeze(0)
         # g.imgs = [torch.Tensor(g.imgs[i] * g.masks[i]).unsqueeze(0) for i in range(len(g.imgs))] 
         g.imgs = [r(img) for img in g.imgs]
-        g.imgs = torch.cat(g.imgs, dim=0)
+        g.imgs = torch.stack(g.imgs)
 
         if len(g.imgs.shape) == 3:
             g.imgs = g.imgs.unsqueeze(1)

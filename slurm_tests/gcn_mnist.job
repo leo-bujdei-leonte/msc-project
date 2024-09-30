@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -N 1
-#SBATCH --job-name=046
+#SBATCH --job-name=001
 #SBATCH --output=data/slurm_logs/046.out
 #SBATCH --error=data/slurm_logs/046.err
 #SBATCH --time=24:00:00

@@ -7,7 +7,7 @@ from .vit import VisionEncoder, PositionalEncoding2D
 
 class CoordViT(nn.Module):
     def __init__(self, image_size: int, channel_size: int, patch_size: int, embed_size: int, num_heads: int,
-                 classes: int, num_layers: int, hidden_size: int, dropout: float = 0.1):
+                 classes: int, num_layers: int, hidden_size: int, mlp_size: int, dropout: float = 0.1):
         super(CoordViT, self).__init__()
 
         self.p = patch_size
@@ -21,6 +21,7 @@ class CoordViT(nn.Module):
         self.hidden_size = hidden_size
         self.dropout = dropout
         self.dropout_layer = nn.Dropout(dropout)
+        self.mlp_size = mlp_size
 
         self.embeddings = nn.Linear(self.patch_size, self.embed_size)
         self.class_token = nn.Parameter(torch.randn(1, 1, self.embed_size))
@@ -33,12 +34,13 @@ class CoordViT(nn.Module):
         self.norm = nn.LayerNorm(self.embed_size)
 
         self.classifier = nn.Sequential(
-            nn.Linear(self.embed_size, self.classes)
+            nn.Linear(self.embed_size, self.mlp_size),
+            nn.GELU(),
+            nn.Linear(self.mlp_size, self.classes),
         )
 
     def forward(self, x, coords, mask):
         b, n, c, h, w = x.size()
-
         x = x.reshape(b, n, c*h*w)
         x = self.embeddings(x)
 

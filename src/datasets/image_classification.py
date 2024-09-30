@@ -70,10 +70,10 @@ class ImageClassificationDataset(Dataset):
         
         return data
     
-    def to_slic_graphs(self, n_segments, compactness, resize_stack_patches=None,
+    def to_slic_graphs(self, image_size, n_segments, compactness, resize_stack_patches=None,
                        lrgb_stats=False):
         if resize_stack_patches is not None:
-            g_path = os.sep.join([self.root, "graph", f"SLIC_{n_segments}_{compactness}_resized_stacked_{resize_stack_patches}.pkl"])
+            g_path = os.sep.join([self.root, "graph", f"SLIC_{image_size}_{n_segments}_{compactness}_resized_stacked_{resize_stack_patches}.pkl"])
             if os.path.isfile(g_path):
                 self.data = pickle.load(open(g_path, "rb"))
                 print("Loaded existing resized and stacked graphs")
@@ -87,7 +87,7 @@ class ImageClassificationDataset(Dataset):
                 pickle.dump(self.data, open(g_path, "wb"))
         
         elif lrgb_stats:
-            g_path = os.sep.join([self.root, "graph", f"SLIC_{n_segments}_{compactness}_lrgb.pkl"])
+            g_path = os.sep.join([self.root, "graph", f"SLIC_{image_size}_{n_segments}_{compactness}_lrgb.pkl"])
             if os.path.isfile(g_path):
                 self.data = pickle.load(open(g_path, "rb"))
                 print("Loaded existing lrgb graphs")

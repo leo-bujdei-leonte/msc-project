@@ -95,11 +95,11 @@ class SPResizedLinear(nn.Module):
     def __init__(self, patch_size, embed_size):
         super(SPResizedLinear, self).__init__()
         self.lin = nn.Linear(patch_size, embed_size)
-    
+            
     def forward(self, x):
         n, c, h, w = x.size()
         x = x.reshape(n, c*h*w)
-        
+                
         return self.lin(x)
 
 class SPLRGB(nn.Module):

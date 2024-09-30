@@ -25,6 +25,7 @@ def model_init_fn(args):
         args.classes,
         args.num_layers,
         args.hidden_size,
+        args.mlp_size,
         dropout=args.dropout,
     )
 
@@ -33,15 +34,19 @@ extra_args = [
     ("--save-path", str, save_path, "path to save the model"),
     ("--data-root", str, data_root, "path to save the dataset"),
     
-    ("--image-size",   int,   32,  "image size"),
-    ("--channel-size", int,   3,   "channel size"),
-    ("--patch-size",   int,   8,   "patch size"),
-    ("--embed-size",   int,   512, "patch embedding size"),
-    ("--num-heads",    int,   8,   "number of attention heads"),
-    ("--classes",      int,   100,  "number of classes"),
-    ("--num-layers",   int,   3,   "number of encoder layers"),
-    ("--hidden-size",  int,   256, "encoder dimension"),
-    ("--dropout",      float, 0.2, "encoder dimension"),
+    ("--batch-size",   int,   4096, "batch size for the dataloader"),
+    ("--weight-decay", float, 0.0,  "weight decay"),
+    
+    ("--image-size",    int,   224,  "image size"),
+    ("--channel-size",  int,   3,    "channel size"),
+    ("--patch-size",    int,   16,   "patch size"),
+    ("--embed-size",    int,   768,  "embed size"),
+    ("--num-heads",     int,   12,   "number of heads"),
+    ("--classes",       int,   100,  "number of classes"),
+    ("--num-layers",    int,   12,   "number of layers"),
+    ("--hidden-size",   int,   768,  "hidden size"),
+    ("--dropout",       float, 0.2,  "dropout"),
+    ("--mlp-size",      int,   3072, "mlp hidden size"),
 ]
 exp = Experiment(project, description)
 exp.parse_args(extra_args)
@@ -53,7 +58,7 @@ transform = Compose([
     Normalize(0, 1),
 ])
 dataset = CIFAR100(root=exp.args.data_root, download=True, transform=transform)
-dataset.to_slic_graphs(resize_stack_patches=resize_stack_patches, n_segments=n_segments, compactness=compactness)
+dataset.to_slic_graphs(image_size=exp.args.image_size, resize_stack_patches=resize_stack_patches, n_segments=n_segments, compactness=compactness)
 exp.prepare_dataset(dataset, graph_loader=False, batch_collate_fn=collate_slic_graph_patches)
 
 # experiment run
